@@ -39,14 +39,15 @@ function removeHighlightsExceptFor(matches = new Set()) {
 
 function selectAndHighlight(selector) {
 	if (selector) {
+		let matches = null
 		try {
-			const matches = new Set(document.querySelectorAll(selector))
-			if (matches) {
-				removeHighlightsExceptFor(matches)
-				highlight(matches)
-			}
+			matches = new Set(document.querySelectorAll(selector))
 		} catch {
 			console.error(`Probably an invalid selector: ${selector}`)
+		}
+		if (matches) {
+			removeHighlightsExceptFor(matches)
+			highlight(matches)
 		}
 	} else {
 		removeHighlightsExceptFor()
