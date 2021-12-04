@@ -101,3 +101,11 @@ chrome.storage.sync.get(settings, items => {
 	highlightOutline = items.outline
 	selectAndHighlight(items.selector)
 })
+
+chrome.runtime.onMessage.addListener(message => {
+	if (message.name === 'update-highlights') {
+		chrome.storage.sync.get('selector', items => {
+			selectAndHighlight(items.selector)
+		})
+	}
+})

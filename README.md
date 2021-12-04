@@ -5,7 +5,7 @@ This simple browser extension highlights all elements on the page that match a s
 
 If an element that matches the selector already _is_ a landmark region, it's wrapped with a new one (which is removed when the selector is changed).
 
-Please note that this will run on all pages automatically, but does not presently update the highlights as the DOM changes. (For now you can delete and re-enter the selector if you want to update to the latest DOM.)
+Please note that this will run on all pages automatically, but does not presently update the highlights as the DOM changes. You can use the re-run button or keyboard shortcut to update the highlights at any time.
 
 Running the extension
 ---------------------
@@ -25,6 +25,8 @@ Using the extension
 Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> on Mac) to bring up the pop-up, where you can update your selector and tweak the outline style.
 
 Your chosen selector and outline styles will be saved across browser restarts.
+
+Press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> on Mac) to re-run the current selector at any time (even if the pop-up is closed).
 
 ### Quick keyboard workflow tips
 

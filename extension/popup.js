@@ -14,6 +14,12 @@ for (const setting in settings) {
 	})
 }
 
+document.getElementById('rerun').addEventListener('click', () => {
+	chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+		chrome.tabs.sendMessage(tabs[0].id, { name: 'update-highlights' })
+	})
+})
+
 chrome.storage.sync.get(settings, items => {
 	for (const setting in settings) {
 		if (items[setting]) {

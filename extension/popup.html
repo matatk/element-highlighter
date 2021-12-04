@@ -6,13 +6,15 @@
 <style>
 body { margin: 8px; }  /* match Chrome's default */
 label { font-weight: bold; }
-div + div { margin-top: 8px; }
+button { width: 100%; }
+div + div, button { margin-top: 8px; }
 </style>
 </head>
 <body>
 	<div>
 		<label for="selector">Selector</label>
 		<input id="selector" autofocus></label>
+		<button id="rerun">Re-run selector</button>
 	</div>
 	<div>
 		<label for="outline">Outline</label>
