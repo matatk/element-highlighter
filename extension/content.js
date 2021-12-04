@@ -28,6 +28,9 @@ function removeHighlightsExceptFor(matches = new Set()) {
 	for (const element of highlighted) {
 		if (!matches.has(element)) {
 			element.style.outline = originalInlineOutlines[element] ?? ''
+			if (element.getAttribute('style') === '') {
+				element.removeAttribute('style')
+			}
 			delete originalInlineOutlines[element]
 			highlighted.delete(element)
 		}
