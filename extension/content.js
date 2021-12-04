@@ -1,15 +1,26 @@
 'use strict'
-const KEY = 'selector'  // also in popup.js
+// also in content.js
+const settings = {
+	'selector': null,
+	'outline': '4px solid yellow'
+}
 const highlighted = new Set([])
 const originalInlineOutlines = {}
+let highlightOutline = null
 
 function highlight(elements) {
 	for (const element of elements) {
 		if (!highlighted.has(element)) {
 			originalInlineOutlines[element] = element.style.outline
-			element.style.outline = '4px solid yellow'
+			element.style.outline = highlightOutline
 			highlighted.add(element)
 		}
+	}
+}
+
+function updateOutlines() {
+	for (const element of highlighted) {
+		element.style.outline = highlightOutline
 	}
 }
 
@@ -23,7 +34,7 @@ function removeHighlightsExceptFor(matches = new Set()) {
 	}
 }
 
-function updateHighlights(selector) {
+function selectAndHighlight(selector) {
 	if (selector) {
 		try {
 			const matches = new Set(document.querySelectorAll(selector))
@@ -40,11 +51,16 @@ function updateHighlights(selector) {
 }
 
 chrome.storage.onChanged.addListener((changes) => {
-	if (KEY in changes) {
-		updateHighlights(changes[KEY].newValue)
+	if ('selector' in changes) {
+		selectAndHighlight(changes.selector.newValue)
+	}
+	if ('outline' in changes) {
+		highlightOutline = changes.outline.newValue
+		updateOutlines()
 	}
 })
 
-chrome.storage.sync.get([ KEY ], items => {
-	updateHighlights(items[KEY])
+chrome.storage.sync.get(settings, items => {
+	selectAndHighlight(items.selector)
+	highlightOutline = items.outline
 })

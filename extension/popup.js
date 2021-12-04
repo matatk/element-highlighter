@@ -1,13 +1,23 @@
 'use strict'
-const KEY = 'selector'  // also in content.js
-const ID = 'input'
+// also in content.js
+const settings = {
+	'selector': null,
+	'outline': '4px solid yellow'
+}
 
-document.getElementById(ID).addEventListener('change', event => {
-	chrome.storage.sync.set({ [KEY]: event.target.value })
-})
+for (const setting in settings) {
+	document.getElementById(setting).addEventListener('change', event => {
+		if (setting === 'outline' && event.target.value === '') {
+			event.target.value = settings.outline
+		}
+		chrome.storage.sync.set({ [setting]: event.target.value })
+	})
+}
 
-chrome.storage.sync.get([ KEY ], items => {
-	if (items[KEY]) {
-		document.getElementById(ID).value = items[KEY]
+chrome.storage.sync.get(settings, items => {
+	for (const setting in settings) {
+		if (items[setting]) {
+			document.getElementById(setting).value = items[setting]
+		}
 	}
 })

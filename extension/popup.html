@@ -3,9 +3,21 @@
 <head>
 	<meta charset="UTF-8">
 	<title></title>
+<style>
+body { margin: 8px; }  /* match Chrome's default */
+label { font-weight: bold; }
+div + div { margin-top: 8px; }
+</style>
 </head>
 <body>
-	<input id="input" autofocus>
+	<div>
+		<label for="selector">Selector</label>
+		<input id="selector" autofocus></label>
+	</div>
+	<div>
+		<label for="outline">Outline</label>
+		<input id="outline">
+	</div>
 	<script src="popup.js"></script>
 </body>
 </html>
