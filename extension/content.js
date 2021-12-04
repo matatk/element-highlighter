@@ -8,12 +8,26 @@ const LANDMARK = 'data-highlight-selector-landmark'
 const highlighted = new Set([])
 const originalInlineOutlines = {}
 let highlightOutline = null
-let counter = 0
+let highlightCounter = 0
+let mutationCounter = 0
+
+const observer = new MutationObserver(() => {
+	chrome.runtime.sendMessage({ name: 'mutations', value: ++mutationCounter })
+	reRunSelectAndHighlight()
+})
+
+function observeSpecifically() {
+	observer.observe(document, {
+		attributes: true,
+		childList: true,
+		subtree: true
+	})
+}
 
 function makeElementIntoLandmark(element, asWrapper) {
 	element.setAttribute('role', 'region')
 	element.setAttribute('aria-roledescription', 'Highlight')
-	element.setAttribute('aria-label', ++counter)
+	element.setAttribute('aria-label', ++highlightCounter)
 	element.setAttribute(LANDMARK, asWrapper ? 'wrapper' : '')
 }
 
@@ -41,9 +55,12 @@ function highlight(elements) {
 }
 
 function updateOutlines() {
+	observer.disconnect()
+	observer.takeRecords()
 	for (const element of highlighted) {
 		element.style.outline = highlightOutline
 	}
+	observeSpecifically()
 }
 
 function removeHighlightsExceptFor(matches = new Set()) {
@@ -79,13 +96,26 @@ function selectAndHighlight(selector) {
 			console.error(`Probably an invalid selector: ${selector}`)
 		}
 		if (matches) {
+			observer.disconnect()
+			observer.takeRecords()
 			removeHighlightsExceptFor(matches)
 			highlight(matches)
 		}
+		observeSpecifically()
 	} else {
 		removeHighlightsExceptFor()
+		observer.disconnect()
+		observer.takeRecords()
 	}
 }
+
+function reRunSelectAndHighlight() {
+	chrome.storage.sync.get('selector', items => {
+		selectAndHighlight(items.selector)
+	})
+}
+
+// Event handlers
 
 chrome.storage.onChanged.addListener((changes) => {
 	if ('selector' in changes) {
@@ -97,15 +127,35 @@ chrome.storage.onChanged.addListener((changes) => {
 	}
 })
 
+chrome.runtime.onMessage.addListener(message => {
+	if (message.name === 'update-highlights') {
+		reRunSelectAndHighlight()
+	} else if (message.name === 'get-mutations') {
+		chrome.runtime.sendMessage({
+			name: 'mutations',
+			value: mutationCounter
+		})
+	}
+})
+
+function reflectVisibility() {
+	if (document.hidden) {
+		observer.disconnect()
+		observer.takeRecords()
+	} else {
+		observeSpecifically()
+	}
+}
+
+// Bootstrapping
+
 chrome.storage.sync.get(settings, items => {
 	highlightOutline = items.outline
 	selectAndHighlight(items.selector)
 })
 
-chrome.runtime.onMessage.addListener(message => {
-	if (message.name === 'update-highlights') {
-		chrome.storage.sync.get('selector', items => {
-			selectAndHighlight(items.selector)
-		})
-	}
-})
+document.addEventListener('visibilitychange', reflectVisibility)
+reflectVisibility()
+
+// In case the pop-up is open
+chrome.runtime.sendMessage({ name: 'mutations', value: mutationCounter })
