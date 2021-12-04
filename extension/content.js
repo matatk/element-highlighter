@@ -1,5 +1,5 @@
 'use strict'
-const KEY = 'query'  // also in popup.js
+const KEY = 'selector'  // also in popup.js
 const highlighted = new Set([])
 const originalInlineOutlines = {}
 
@@ -23,16 +23,16 @@ function removeHighlightsExceptFor(matches = new Set()) {
 	}
 }
 
-function updateHighlights(query) {
-	if (query) {
+function updateHighlights(selector) {
+	if (selector) {
 		try {
-			const matches = new Set(document.querySelectorAll(query))
+			const matches = new Set(document.querySelectorAll(selector))
 			if (matches) {
 				removeHighlightsExceptFor(matches)
 				highlight(matches)
 			}
 		} catch {
-			console.error(`Probably an invalid selector: ${query}`)
+			console.error(`Probably an invalid selector: ${selector}`)
 		}
 	} else {
 		removeHighlightsExceptFor()

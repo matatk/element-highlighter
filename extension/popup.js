@@ -1,5 +1,5 @@
 'use strict'
-const KEY = 'query'  // also in content.js
+const KEY = 'selector'  // also in content.js
 const ID = 'input'
 
 document.getElementById(ID).addEventListener('change', event => {
