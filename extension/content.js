@@ -64,6 +64,6 @@ chrome.storage.onChanged.addListener((changes) => {
 })
 
 chrome.storage.sync.get(settings, items => {
-	selectAndHighlight(items.selector)
 	highlightOutline = items.outline
+	selectAndHighlight(items.selector)
 })
