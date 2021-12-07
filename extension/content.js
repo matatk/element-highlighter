@@ -12,6 +12,7 @@ let cachedSelector = null
 let cachedOutline = null
 let highlightCounter = 0
 let mutationCounter = 0
+let matchCounter = 0
 
 // Mutation observation
 
@@ -93,12 +94,14 @@ function selectAndhighlight() {
 			console.error(`Probably an invalid selector: ${cachedSelector}`)
 			return
 		}
+		matchCounter = matches.size
 		if (matches) {
 			observer.disconnect()
 			observer.takeRecords()
 			removeHighlightsExceptFor(matches)
 			highlight(matches)
 		}
+		chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
 		observeDocument()
 	} else {
 		removeHighlightsExceptFor()
@@ -128,8 +131,9 @@ chrome.storage.onChanged.addListener((changes) => {
 })
 
 chrome.runtime.onMessage.addListener(message => {
-	if (message.name === 'get-mutations') {  // only sent to active window tab
+	if (message.name === 'get-counters') {  // only sent to active window tab
 		chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
+		chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
 	}
 })
 
@@ -156,5 +160,6 @@ document.addEventListener('visibilitychange', reflectVisibility)
 
 if (!document.hidden) {  // Firefox auto-injects content scripts
 	chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
+	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
 	startUp()
 }

@@ -23,11 +23,11 @@ for (const setting in settings) {
 }
 
 chrome.runtime.onMessage.addListener(message => {
-	if (message.name === 'mutations') {
-		document.getElementById('mutations').innerText = message.data
+	if (message.name === 'mutations' || message.name === 'matches') {
+		document.getElementById(message.name).innerText = message.data
 	}
 })
 
 chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-	chrome.tabs.sendMessage(tabs[0].id, { name: 'get-mutations' })
+	chrome.tabs.sendMessage(tabs[0].id, { name: 'get-counters' })
 })

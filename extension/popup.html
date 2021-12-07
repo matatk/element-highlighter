@@ -12,8 +12,11 @@ div + div { margin-top: 8px; }
 <body>
 	<div>
 		<label for="selector">Selector</label>
-		<input id="selector" autofocus></label>
-		<p aria-live="polite"><span id="mutations"></span> observed mutations</p>
+		<input id="selector" aria-describedby="description" autofocus></label>
+		<div id="description">
+			<p aria-live="polite"><span id="matches"></span> matches</p>
+			<p aria-live="polite"><span id="mutations"></span> observed mutations</p>
+		</div>
 	</div>
 	<div>
 		<label for="outline">Outline</label>
