@@ -122,7 +122,7 @@ chrome.storage.onChanged.addListener((changes) => {
 			for (const element of highlighted) {
 				element.style.outline = cachedOutline
 			}
-			observeDocument()
+			if (cachedSelector) observeDocument()
 		}
 	}
 })
