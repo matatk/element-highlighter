@@ -153,5 +153,5 @@ function startUp() {
 }
 
 document.addEventListener('visibilitychange', reflectVisibility)
-chrome.runtime.sendMessage({ name: 'mutations', value: mutationCounter })
+chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
 startUp()
