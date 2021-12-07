@@ -11,18 +11,22 @@ let highlightOutline = null
 let highlightCounter = 0
 let mutationCounter = 0
 
+// Mutation observation
+
 const observer = new MutationObserver(() => {
 	chrome.runtime.sendMessage({ name: 'mutations', value: ++mutationCounter })
 	reRunSelectAndHighlight()
 })
 
-function observeSpecifically() {
+function observeDocument() {
 	observer.observe(document, {
 		attributes: true,
 		childList: true,
 		subtree: true
 	})
 }
+
+// Managing highlights (outlines and landmarks)
 
 function makeElementIntoLandmark(element, asWrapper) {
 	element.setAttribute('role', 'region')
@@ -38,7 +42,7 @@ function highlight(elements) {
 		originalInlineOutlines[element] = element.style.outline
 		element.style.outline = highlightOutline
 
-		// Make it a landmark region
+		// Wrap the element if needed, then make it a landmark region
 		if (element.getAttribute('role') ||
 			element.getAttribute('aria-labelledby') ||
 			element.getAttribute('aria-label')) {
@@ -52,15 +56,6 @@ function highlight(elements) {
 
 		highlighted.add(element)
 	}
-}
-
-function updateOutlines() {
-	observer.disconnect()
-	observer.takeRecords()
-	for (const element of highlighted) {
-		element.style.outline = highlightOutline
-	}
-	observeSpecifically()
 }
 
 function removeHighlightsExceptFor(matches = new Set()) {
@@ -87,7 +82,7 @@ function removeHighlightsExceptFor(matches = new Set()) {
 	}
 }
 
-function selectAndHighlight(selector) {
+function selectAndhighlight(selector) {
 	if (selector) {
 		let matches = null
 		try {
@@ -101,7 +96,7 @@ function selectAndHighlight(selector) {
 			removeHighlightsExceptFor(matches)
 			highlight(matches)
 		}
-		observeSpecifically()
+		observeDocument()
 	} else {
 		removeHighlightsExceptFor()
 		observer.disconnect()
@@ -109,32 +104,42 @@ function selectAndHighlight(selector) {
 	}
 }
 
+// TODO: replace with cached selector, like with outline?
 function reRunSelectAndHighlight() {
 	chrome.storage.sync.get('selector', items => {
-		selectAndHighlight(items.selector)
+		selectAndhighlight(items.selector)
 	})
 }
 
 // Event handlers
 
 chrome.storage.onChanged.addListener((changes) => {
-	if ('selector' in changes) {
-		selectAndHighlight(changes.selector.newValue)
-	}
-	if ('outline' in changes) {
-		highlightOutline = changes.outline.newValue
-		updateOutlines()
+	if (!document.hidden) {
+		if ('selector' in changes) {
+			selectAndhighlight(changes.selector.newValue)
+		}
+		if ('outline' in changes) {
+			highlightOutline = changes.outline.newValue
+			observer.disconnect()
+			observer.takeRecords()
+			for (const element of highlighted) {
+				element.style.outline = highlightOutline
+			}
+			observeDocument()
+		}
 	}
 })
 
 chrome.runtime.onMessage.addListener(message => {
-	if (message.name === 'update-highlights') {
-		reRunSelectAndHighlight()
-	} else if (message.name === 'get-mutations') {
-		chrome.runtime.sendMessage({
-			name: 'mutations',
-			value: mutationCounter
-		})
+	if (!document.hidden) {
+		if (message.name === 'update-highlights') {
+			reRunSelectAndHighlight()  // TODO: remove when the button's removed
+		} else if (message.name === 'get-mutations') {
+			chrome.runtime.sendMessage({
+				name: 'mutations',
+				value: mutationCounter
+			})
+		}
 	}
 })
 
@@ -143,19 +148,18 @@ function reflectVisibility() {
 		observer.disconnect()
 		observer.takeRecords()
 	} else {
-		observeSpecifically()
+		chrome.storage.sync.get(settings, items => {
+			highlightOutline = items.outline
+			selectAndhighlight(items.selector)
+		})
+		observeDocument()
 	}
 }
 
 // Bootstrapping
 
-chrome.storage.sync.get(settings, items => {
-	highlightOutline = items.outline
-	selectAndHighlight(items.selector)
-})
-
 document.addEventListener('visibilitychange', reflectVisibility)
-reflectVisibility()
+reflectVisibility()  // TODO needed?
 
 // In case the pop-up is open
 chrome.runtime.sendMessage({ name: 'mutations', value: mutationCounter })
