@@ -116,7 +116,7 @@ chrome.storage.onChanged.addListener((changes) => {
 			selectAndhighlight()
 		}
 		if ('outline' in changes) {
-			cachedSelector = changes.outline.newValue
+			cachedOutline = changes.outline.newValue
 			observer.disconnect()
 			observer.takeRecords()
 			for (const element of highlighted) {
