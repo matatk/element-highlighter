@@ -91,6 +91,7 @@ function selectAndhighlight() {
 			matches = new Set(document.querySelectorAll(cachedSelector))
 		} catch {
 			console.error(`Probably an invalid selector: ${cachedSelector}`)
+			return
 		}
 		if (matches) {
 			observer.disconnect()
