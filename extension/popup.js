@@ -1,5 +1,5 @@
 'use strict'
-// also in content.js
+// NOTE: Also in content.js
 const settings = {
 	'selector': null,
 	'outline': '4px solid yellow'
@@ -24,7 +24,7 @@ for (const setting in settings) {
 
 chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'mutations') {
-		document.getElementById('mutations').innerText = message.value
+		document.getElementById('mutations').innerText = message.data
 	}
 })
 

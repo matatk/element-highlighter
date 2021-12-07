@@ -1,24 +1,23 @@
 'use strict'
-// also in content.js
+// NOTE: Also in popup.js
 const settings = {
 	'selector': null,
 	'outline': '4px solid yellow'
 }
+
 const LANDMARK = 'data-highlight-selector-landmark'
 const highlighted = new Set([])
 const originalInlineOutlines = {}
-let highlightOutline = null
+let cachedSelector = null
+let cachedOutline = null
 let highlightCounter = 0
 let mutationCounter = 0
 
 // Mutation observation
 
 const observer = new MutationObserver(() => {
-	chrome.runtime.sendMessage({ name: 'mutations', value: ++mutationCounter })
-	// TODO: cache the selector as with the outline?
-	chrome.storage.sync.get('selector', items => {
-		selectAndhighlight(items.selector)
-	})
+	chrome.runtime.sendMessage({ name: 'mutations', data: ++mutationCounter })
+	selectAndhighlight()
 })
 
 function observeDocument() {
@@ -36,29 +35,6 @@ function makeElementIntoLandmark(element, asWrapper) {
 	element.setAttribute('aria-roledescription', 'Highlight')
 	element.setAttribute('aria-label', ++highlightCounter)
 	element.setAttribute(LANDMARK, asWrapper ? 'wrapper' : '')
-}
-
-function highlight(elements) {
-	for (const element of elements) {
-		if (highlighted.has(element)) continue
-
-		originalInlineOutlines[element] = element.style.outline
-		element.style.outline = highlightOutline
-
-		// Wrap the element if needed, then make it a landmark region
-		if (element.getAttribute('role') ||
-			element.getAttribute('aria-labelledby') ||
-			element.getAttribute('aria-label')) {
-			const wrapper = document.createElement('DIV')
-			makeElementIntoLandmark(wrapper, true)
-			element.parentElement.insertBefore(wrapper, element)
-			wrapper.appendChild(element)
-		} else {
-			makeElementIntoLandmark(element, false)
-		}
-
-		highlighted.add(element)
-	}
 }
 
 function removeHighlightsExceptFor(matches = new Set()) {
@@ -85,13 +61,36 @@ function removeHighlightsExceptFor(matches = new Set()) {
 	}
 }
 
-function selectAndhighlight(selector) {
-	if (selector) {
+function highlight(elements) {
+	for (const element of elements) {
+		if (highlighted.has(element)) continue
+
+		originalInlineOutlines[element] = element.style.outline
+		element.style.outline = cachedOutline
+
+		// Wrap the element if needed, then make it a landmark region
+		if (element.getAttribute('role') ||
+			element.getAttribute('aria-labelledby') ||
+			element.getAttribute('aria-label')) {
+			const wrapper = document.createElement('DIV')
+			makeElementIntoLandmark(wrapper, true)
+			element.parentElement.insertBefore(wrapper, element)
+			wrapper.appendChild(element)
+		} else {
+			makeElementIntoLandmark(element, false)
+		}
+
+		highlighted.add(element)
+	}
+}
+
+function selectAndhighlight() {
+	if (cachedSelector) {
 		let matches = null
 		try {
-			matches = new Set(document.querySelectorAll(selector))
+			matches = new Set(document.querySelectorAll(cachedSelector))
 		} catch {
-			console.error(`Probably an invalid selector: ${selector}`)
+			console.error(`Probably an invalid selector: ${cachedSelector}`)
 		}
 		if (matches) {
 			observer.disconnect()
@@ -112,14 +111,15 @@ function selectAndhighlight(selector) {
 chrome.storage.onChanged.addListener((changes) => {
 	if (!document.hidden) {
 		if ('selector' in changes) {
-			selectAndhighlight(changes.selector.newValue)
+			cachedSelector = changes.selector.newValue
+			selectAndhighlight()
 		}
 		if ('outline' in changes) {
-			highlightOutline = changes.outline.newValue
+			cachedSelector = changes.outline.newValue
 			observer.disconnect()
 			observer.takeRecords()
 			for (const element of highlighted) {
-				element.style.outline = highlightOutline
+				element.style.outline = cachedOutline
 			}
 			observeDocument()
 		}
@@ -127,11 +127,8 @@ chrome.storage.onChanged.addListener((changes) => {
 })
 
 chrome.runtime.onMessage.addListener(message => {
-	if (!document.hidden && message.name === 'get-mutations') {
-		chrome.runtime.sendMessage({
-			name: 'mutations',
-			value: mutationCounter
-		})
+	if (message.name === 'get-mutations') {  // only sent to active window tab
+		chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
 	}
 })
 
@@ -140,18 +137,20 @@ function reflectVisibility() {
 		observer.disconnect()
 		observer.takeRecords()
 	} else {
-		chrome.storage.sync.get(settings, items => {
-			highlightOutline = items.outline
-			selectAndhighlight(items.selector)
-		})
-		observeDocument()
+		startUp()
 	}
 }
 
 // Bootstrapping
 
-document.addEventListener('visibilitychange', reflectVisibility)
-reflectVisibility()  // TODO needed?
+function startUp() {
+	chrome.storage.sync.get(settings, items => {
+		cachedSelector = items.selector
+		cachedOutline = items.outline
+		selectAndhighlight()
+	})
+}
 
-// In case the pop-up is open
+document.addEventListener('visibilitychange', reflectVisibility)
 chrome.runtime.sendMessage({ name: 'mutations', value: mutationCounter })
+startUp()
