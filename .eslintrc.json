@@ -12,10 +12,7 @@
   },
   "rules": {
     "accessor-pairs": "error",
-    "array-bracket-newline": "error",
-    "array-bracket-spacing": "error",
     "array-callback-return": "error",
-    "array-element-newline": "error",
     "arrow-body-style": "error",
     "arrow-parens": "off",
     "arrow-spacing": [
@@ -73,7 +70,6 @@
       "error",
       "declaration"
     ],
-    "function-paren-newline": "error",
     "generator-star-spacing": "error",
     "grouped-accessor-pairs": "error",
     "guard-for-in": "off",
@@ -207,7 +203,6 @@
     "no-void": "error",
     "no-whitespace-before-property": "error",
     "nonblock-statement-body-position": "error",
-    "object-curly-newline": "error",
     "object-curly-spacing": [
       "error",
       "always"
