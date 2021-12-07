@@ -101,13 +101,14 @@ function selectAndhighlight() {
 			removeHighlightsExceptFor(matches)
 			highlight(matches)
 		}
-		chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
 		observeDocument()
 	} else {
+		matchCounter = 0
 		removeHighlightsExceptFor()
 		observer.disconnect()
 		observer.takeRecords()
 	}
+	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
 }
 
 // Event handlers
