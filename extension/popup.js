@@ -22,12 +22,6 @@ for (const setting in settings) {
 	})
 }
 
-document.getElementById('rerun').addEventListener('click', () => {
-	chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-		chrome.tabs.sendMessage(tabs[0].id, { name: 'update-highlights' })
-	})
-})
-
 chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'mutations') {
 		document.getElementById('mutations').innerText = message.value

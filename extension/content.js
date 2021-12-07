@@ -15,7 +15,10 @@ let mutationCounter = 0
 
 const observer = new MutationObserver(() => {
 	chrome.runtime.sendMessage({ name: 'mutations', value: ++mutationCounter })
-	reRunSelectAndHighlight()
+	// TODO: cache the selector as with the outline?
+	chrome.storage.sync.get('selector', items => {
+		selectAndhighlight(items.selector)
+	})
 })
 
 function observeDocument() {
@@ -104,13 +107,6 @@ function selectAndhighlight(selector) {
 	}
 }
 
-// TODO: replace with cached selector, like with outline?
-function reRunSelectAndHighlight() {
-	chrome.storage.sync.get('selector', items => {
-		selectAndhighlight(items.selector)
-	})
-}
-
 // Event handlers
 
 chrome.storage.onChanged.addListener((changes) => {
@@ -131,15 +127,11 @@ chrome.storage.onChanged.addListener((changes) => {
 })
 
 chrome.runtime.onMessage.addListener(message => {
-	if (!document.hidden) {
-		if (message.name === 'update-highlights') {
-			reRunSelectAndHighlight()  // TODO: remove when the button's removed
-		} else if (message.name === 'get-mutations') {
-			chrome.runtime.sendMessage({
-				name: 'mutations',
-				value: mutationCounter
-			})
-		}
+	if (!document.hidden && message.name === 'get-mutations') {
+		chrome.runtime.sendMessage({
+			name: 'mutations',
+			value: mutationCounter
+		})
 	}
 })
 

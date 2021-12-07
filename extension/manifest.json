@@ -1,10 +1,5 @@
 {
   "author": "Matthew Tylee Atkinson",
-  "background": {
-    "scripts": [
-      "background.js"
-    ]
-  },
   "browser_action": {
     "browser_style": true,
     "default_popup": "popup.html",
@@ -19,12 +14,6 @@
     "_execute_browser_action": {
       "suggested_key": {
         "default": "Alt+Shift+H"
-      }
-    },
-    "update-highlights": {
-      "description": "Re-run the current selector and update highlights",
-      "suggested_key": {
-        "default": "Alt+Shift+U"
       }
     }
   },
