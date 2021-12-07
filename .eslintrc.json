@@ -81,7 +81,13 @@
     "id-length": "error",
     "id-match": "error",
     "implicit-arrow-linebreak": "error",
-    "indent": "off",
+    "indent": [
+      "error",
+      "tab",
+      {
+        "SwitchCase": 1
+      }
+    ],
     "init-declarations": "error",
     "jsx-quotes": "error",
     "key-spacing": "error",
@@ -185,7 +191,12 @@
     "no-unreachable-loop": "error",
     "no-unused-expressions": "error",
     "no-unused-private-class-members": "error",
-    "no-use-before-define": [ "error", { "functions": false } ],
+    "no-use-before-define": [
+      "error",
+      {
+        "functions": false
+      }
+    ],
     "no-useless-call": "error",
     "no-useless-computed-key": "error",
     "no-useless-concat": "error",
@@ -194,7 +205,6 @@
     "no-useless-return": "error",
     "no-var": "error",
     "no-void": "error",
-    "no-warning-comments": "error",
     "no-whitespace-before-property": "error",
     "nonblock-statement-body-position": "error",
     "object-curly-newline": "error",
