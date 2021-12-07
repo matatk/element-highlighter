@@ -153,5 +153,7 @@ function startUp() {
 }
 
 document.addEventListener('visibilitychange', reflectVisibility)
-chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
+if (!document.hidden) {  // Firefox auto-injects content scripts
+	chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
+}
 startUp()
