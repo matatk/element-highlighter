@@ -14,6 +14,7 @@ let highlightCounter = 0
 let mutationCounter = 0
 let matchCounter = 0
 let validSelector = true
+let validOutline = true
 
 // Mutation observation
 
@@ -68,7 +69,7 @@ function highlight(elements) {
 		if (highlighted.has(element)) continue
 
 		originalInlineOutlines[element] = element.style.outline
-		element.style.outline = cachedOutline
+		if (validOutline) element.style.outline = cachedOutline
 
 		// Wrap the element if needed, then make it a landmark region
 		if (element.getAttribute('role') ||
@@ -94,7 +95,8 @@ function selectAndhighlight() {
 			matches = new Set(document.querySelectorAll(cachedSelector))
 		} catch {
 			validSelector = false
-			chrome.runtime.sendMessage({ name: 'valid', data: validSelector })
+			chrome.runtime.sendMessage(
+				{ name: 'selector-valid', data: validSelector })
 			chrome.runtime.sendMessage({ name: 'matches', data: -1 })
 			return
 		}
@@ -112,8 +114,16 @@ function selectAndhighlight() {
 		observer.disconnect()
 		observer.takeRecords()
 	}
-	chrome.runtime.sendMessage({ name: 'valid', data: validSelector })
+	chrome.runtime.sendMessage({ name: 'selector-valid', data: validSelector })
 	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
+}
+
+function checkOutlineValidity() {
+	const test = document.createElement('DIV')
+	test.style.outline = cachedOutline
+	validOutline = test.style.outline !== ''
+	test.remove()
+	chrome.runtime.sendMessage({ name: 'outline-valid', data: validOutline })
 }
 
 // Event handlers
@@ -128,8 +138,11 @@ chrome.storage.onChanged.addListener((changes) => {
 			cachedOutline = changes.outline.newValue
 			observer.disconnect()
 			observer.takeRecords()
-			for (const element of highlighted) {
-				element.style.outline = cachedOutline
+			checkOutlineValidity()
+			if (validOutline) {
+				for (const element of highlighted) {
+					element.style.outline = cachedOutline
+				}
 			}
 			if (cachedSelector) observeDocument()
 		}
@@ -140,7 +153,10 @@ chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'get-info') {  // only sent to active window tab
 		chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
 		chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
-		chrome.runtime.sendMessage({ name: 'valid', data: validSelector })
+		chrome.runtime.sendMessage(
+			{ name: 'selector-valid', data: validSelector })
+		chrome.runtime.sendMessage(
+			{ name: 'outline-valid', data: validOutline })
 	}
 })
 
@@ -159,6 +175,7 @@ function startUp() {
 	chrome.storage.sync.get(settings, items => {
 		cachedSelector = items.selector
 		cachedOutline = items.outline
+		checkOutlineValidity()
 		selectAndhighlight()
 	})
 }

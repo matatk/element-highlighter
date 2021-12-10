@@ -13,7 +13,7 @@ label {
 * + label {
 	margin-top: 1em;
 }
-#selector-and-validity {
+.input-and-validity {
 	display: flex;
 	align-items: center;  /* needed for Firefox */
 	gap: 0.5em;
@@ -25,8 +25,8 @@ label {
 		<label for="selector">Selector</label>
 		<div id="selector-and-validity">
 			<input id="selector" aria-describedby="description" autofocus>
-			<span id="valid">&#9989;</span>
-			<span hidden id="invalid">&#10060;</span>
+			<span id="selector-valid">&#9989;</span>
+			<span hidden id="selector-invalid">&#10060;</span>
 		</div>
 		<div id="description">
 			<p aria-live="polite"><span id="matches">&mdash;</span> matches</p>
@@ -35,7 +35,11 @@ label {
 	</div>
 	<div>
 		<label for="outline">Outline</label>
-		<input id="outline">
+		<div class="input-and-validity">
+			<input id="outline">
+			<span id="outline-valid">&#9989;</span>
+			<span hidden id="outline-invalid">&#10060;</span>
+		</div>
 	</div>
 	<script src="popup.js"></script>
 </body>
