@@ -4,15 +4,30 @@
 	<meta charset="UTF-8">
 	<title></title>
 <style>
-body { margin: 8px; }  /* match Chrome's default */
-label { display: block; font-weight: bold; }
-div + div { margin-top: 8px; }
+body { margin: 1em; }
+label {
+	display: block;
+	font-weight: bold;
+	margin-bottom: 0.5em;
+}
+* + label {
+	margin-top: 1em;
+}
+#selector-and-validity {
+	display: flex;
+	align-items: center;  /* needed for Firefox */
+	gap: 0.5em;
+}
 </style>
 </head>
 <body>
 	<div>
 		<label for="selector">Selector</label>
-		<input id="selector" aria-describedby="description" autofocus></label>
+		<div id="selector-and-validity">
+			<input id="selector" aria-describedby="description" autofocus>
+			<span hidden id="valid">&#9989;</span>
+			<span hidden id="invalid">&#10060;</span>
+		</div>
 		<div id="description">
 			<p aria-live="polite"><span id="matches"></span> matches</p>
 			<p aria-live="polite"><span id="mutations"></span> observed mutations</p>

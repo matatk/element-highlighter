@@ -92,6 +92,7 @@ function selectAndhighlight() {
 			matches = new Set(document.querySelectorAll(cachedSelector))
 		} catch {
 			console.error(`Probably an invalid selector: ${cachedSelector}`)
+			chrome.runtime.sendMessage({ name: 'validity', data: 'invalid' })
 			return
 		}
 		matchCounter = matches.size
@@ -109,6 +110,7 @@ function selectAndhighlight() {
 		observer.takeRecords()
 	}
 	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
+	chrome.runtime.sendMessage({ name: 'validity', data: 'valid' })
 }
 
 // Event handlers

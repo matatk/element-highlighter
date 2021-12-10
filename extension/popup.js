@@ -25,6 +25,11 @@ for (const setting in settings) {
 chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'mutations' || message.name === 'matches') {
 		document.getElementById(message.name).innerText = message.data
+	} else if (message.name === 'validity') {
+		document.getElementById('valid').hidden = message.data === 'invalid'
+		document.getElementById('invalid').hidden = message.data === 'valid'
+		document.getElementById('selector').setAttribute('aria-invalid',
+			message.data === 'invalid')
 	}
 })
 
