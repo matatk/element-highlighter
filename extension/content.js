@@ -96,7 +96,7 @@ function selectAndhighlight() {
 		} catch {
 			validSelector = false
 			chrome.runtime.sendMessage(
-				{ name: 'selector-valid', data: validSelector })
+				{ name: 'validity', of: 'selector', data: validSelector })
 			chrome.runtime.sendMessage({ name: 'matches', data: -1 })
 			return
 		}
@@ -114,7 +114,8 @@ function selectAndhighlight() {
 		observer.disconnect()
 		observer.takeRecords()
 	}
-	chrome.runtime.sendMessage({ name: 'selector-valid', data: validSelector })
+	chrome.runtime.sendMessage(
+		{ name: 'validity', of: 'selector', data: validSelector })
 	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
 }
 
@@ -123,7 +124,8 @@ function checkOutlineValidity() {
 	test.style.outline = cachedOutline
 	validOutline = test.style.outline !== ''
 	test.remove()
-	chrome.runtime.sendMessage({ name: 'outline-valid', data: validOutline })
+	chrome.runtime.sendMessage(
+		{ name: 'validity', of: 'outline', data: validOutline })
 }
 
 // Event handlers
@@ -154,9 +156,9 @@ chrome.runtime.onMessage.addListener(message => {
 		chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
 		chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
 		chrome.runtime.sendMessage(
-			{ name: 'selector-valid', data: validSelector })
+			{ name: 'validity', of: 'selector', data: validSelector })
 		chrome.runtime.sendMessage(
-			{ name: 'outline-valid', data: validOutline })
+			{ name: 'validity', of: 'outline', data: validOutline })
 	}
 })
 

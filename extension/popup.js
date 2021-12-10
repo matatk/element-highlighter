@@ -26,15 +26,10 @@ chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'mutations' || message.name === 'matches') {
 		document.getElementById(message.name).innerText =
 			message.data >= 0 ? message.data : '\u2014'
-	} else if (message.name === 'selector-valid') {
-		document.getElementById('selector-valid').hidden = !message.data
-		document.getElementById('selector-invalid').hidden = message.data
-		document.getElementById('selector').setAttribute(
-			'aria-invalid', !message.data)
-	} else if (message.name === 'outline-valid') {
-		document.getElementById('outline-valid').hidden = !message.data
-		document.getElementById('outline-invalid').hidden = message.data
-		document.getElementById('outline').setAttribute(
+	} else if (message.name === 'validity') {
+		document.getElementById(`${message.of}-valid`).hidden = !message.data
+		document.getElementById(`${message.of}-invalid`).hidden = message.data
+		document.getElementById(message.of).setAttribute(
 			'aria-invalid', !message.data)
 	}
 })
