@@ -13,6 +13,7 @@ let cachedOutline = null
 let highlightCounter = 0
 let mutationCounter = 0
 let matchCounter = 0
+let validSelector = true
 
 // Mutation observation
 
@@ -86,13 +87,15 @@ function highlight(elements) {
 }
 
 function selectAndhighlight() {
+	validSelector = true
 	if (cachedSelector) {
 		let matches = null
 		try {
 			matches = new Set(document.querySelectorAll(cachedSelector))
 		} catch {
-			console.error(`Probably an invalid selector: ${cachedSelector}`)
-			chrome.runtime.sendMessage({ name: 'validity', data: 'invalid' })
+			validSelector = false
+			chrome.runtime.sendMessage({ name: 'valid', data: validSelector })
+			chrome.runtime.sendMessage({ name: 'matches', data: -1 })
 			return
 		}
 		matchCounter = matches.size
@@ -104,13 +107,13 @@ function selectAndhighlight() {
 		}
 		observeDocument()
 	} else {
-		matchCounter = 0
+		matchCounter = -1
 		removeHighlightsExceptFor()
 		observer.disconnect()
 		observer.takeRecords()
 	}
+	chrome.runtime.sendMessage({ name: 'valid', data: validSelector })
 	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
-	chrome.runtime.sendMessage({ name: 'validity', data: 'valid' })
 }
 
 // Event handlers
@@ -134,9 +137,10 @@ chrome.storage.onChanged.addListener((changes) => {
 })
 
 chrome.runtime.onMessage.addListener(message => {
-	if (message.name === 'get-counters') {  // only sent to active window tab
+	if (message.name === 'get-info') {  // only sent to active window tab
 		chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
 		chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
+		chrome.runtime.sendMessage({ name: 'valid', data: validSelector })
 	}
 })
 

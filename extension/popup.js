@@ -24,15 +24,16 @@ for (const setting in settings) {
 
 chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'mutations' || message.name === 'matches') {
-		document.getElementById(message.name).innerText = message.data
-	} else if (message.name === 'validity') {
-		document.getElementById('valid').hidden = message.data === 'invalid'
-		document.getElementById('invalid').hidden = message.data === 'valid'
-		document.getElementById('selector').setAttribute('aria-invalid',
-			message.data === 'invalid')
+		document.getElementById(message.name).innerText =
+			message.data >= 0 ? message.data : '\u2014'
+	} else if (message.name === 'valid') {
+		document.getElementById('valid').hidden = !message.data
+		document.getElementById('invalid').hidden = message.data
+		document.getElementById('selector').setAttribute(
+			'aria-invalid', !message.data)
 	}
 })
 
 chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-	chrome.tabs.sendMessage(tabs[0].id, { name: 'get-counters' })
+	chrome.tabs.sendMessage(tabs[0].id, { name: 'get-info' })
 })
