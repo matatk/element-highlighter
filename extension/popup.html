@@ -29,8 +29,9 @@ label {
 			<span hidden id="selector-invalid">&#10060;</span>
 		</div>
 		<div id="description">
-			<p aria-live="polite"><span id="matches">&mdash;</span> matches</p>
-			<p aria-live="polite"><span id="mutations">&mdash;</span> observed mutations</p>
+			<!-- FIXME: Make a separate live region because this one repeats things, and doesn't announce the em-dash properly. -->
+			<p aria-live="polite" aria-atomic="true"><span id="matches">&mdash;</span> matches</p>
+			<p aria-live="polite" aria-atomic="true"><span id="mutations">&mdash;</span> observed mutations</p>
 		</div>
 	</div>
 	<div>
