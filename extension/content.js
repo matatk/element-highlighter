@@ -50,15 +50,7 @@ function removeHighlightsExceptFor(matches = new Set()) {
 		}
 		delete originalInlineOutlines[element]
 
-		// Remove the landmark region if present
-		if (element.hasAttribute(LANDMARK)) {
-			element.removeAttribute('role')
-			element.removeAttribute('aria-roledescription')
-			element.removeAttribute('aria-label')
-			element.removeAttribute(LANDMARK)
-		} else if (element.parentElement.getAttribute(LANDMARK) === 'wrapper') {
-			element.parentElement.replaceWith(element)
-		}
+		element.parentElement.replaceWith(element)
 
 		highlighted.delete(element)
 	}
@@ -71,17 +63,10 @@ function highlight(elements) {
 		originalInlineOutlines[element] = element.style.outline
 		if (validOutline) element.style.outline = cachedOutline
 
-		// Wrap the element if needed, then make it a landmark region
-		if (element.getAttribute('role') ||
-			element.getAttribute('aria-labelledby') ||
-			element.getAttribute('aria-label')) {
-			const wrapper = document.createElement('DIV')
-			makeElementIntoLandmark(wrapper, true)
-			element.parentElement.insertBefore(wrapper, element)
-			wrapper.appendChild(element)
-		} else {
-			makeElementIntoLandmark(element, false)
-		}
+		const wrapper = document.createElement('DIV')
+		makeElementIntoLandmark(wrapper, true)
+		element.parentElement.insertBefore(wrapper, element)
+		wrapper.appendChild(element)
 
 		highlighted.add(element)
 	}
