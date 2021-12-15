@@ -3,9 +3,9 @@ Highlight Selector
 
 This simple browser extension highlights all elements on the page that match a selector (using a CSS outline of your choice), and creates a landmark region for each match (so that people who can't see the screen and are using assistive technologies can find the matches, and so that people using the keyboard and [Landmarks extension](https://matatk.agrip.org.uk/landmarks/) to navigate can easily move between them).
 
-If an element that matches the selector already _is_ a landmark region, it's wrapped with a new one (which is removed when the selector is changed).
+This will run on all pages automatically (on Chrome you will need to refresh any pages that are open when you first load the extension, though).
 
-Please note that this will run on all pages automatically, but does not presently update the highlights as the DOM changes. You can use the re-run button or keyboard shortcut to update the highlights at any time.
+Please note that, whilst a query exists in the "selector" input box, the page will be re-queried on any DOM change (including attribute value changes). This can really affect performance. Emptying the selector input box (and pressing Enter) will stop the scanning from happening.
 
 Running the extension
 ---------------------
