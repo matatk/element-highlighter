@@ -37,3 +37,8 @@ chrome.runtime.onMessage.addListener(message => {
 chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
 	chrome.tabs.sendMessage(tabs[0].id, { name: 'get-info' })
 })
+
+document.getElementById('help').addEventListener('click', () => {
+	chrome.tabs.create({ url: chrome.runtime.getURL('README.html') })
+	window.close()
+})

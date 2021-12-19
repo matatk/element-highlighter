@@ -2,6 +2,11 @@
   "name": "highlight-selector",
   "version": "0.0.0",
   "private": true,
+  "scripts": {
+    "prebuild": "npm run test",
+    "build": "pandoc README.md -s --toc -V toc-title=\"Table of contents\" > extension/README.html",
+    "test": "eslint ."
+  },
   "devDependencies": {
     "eslint": "^8.4.0"
   }
