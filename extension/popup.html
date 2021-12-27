@@ -1,9 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<title></title>
-<style>
+	<head>
+		<meta charset="UTF-8">
+		<title></title>
+		<style>
 body { margin: 1em; }
 label {
 	display: block;
@@ -23,30 +23,36 @@ button {
 	width: 100%;         /* needed for Chrome */
 }
 p:last-child { margin-bottom: 0; }
-</style>
-</head>
-<body>
-	<label for="selector">Selector</label>
-	<div class="input-and-validity">
-		<input id="selector" aria-describedby="description" autofocus>
-		<span id="selector-valid">&#9989;</span>
-		<span hidden id="selector-invalid">&#10060;</span>
-	</div>
-	<div id="description">
-		<!-- FIXME: Make a separate live region because this one repeats things, and doesn't announce the em-dash properly. -->
-		<p aria-live="polite" aria-atomic="true"><span id="matches">&mdash;</span> matches</p>
-		<p aria-live="polite" aria-atomic="true"><span id="mutations">&mdash;</span> observed mutations</p>
-	</div>
+summary { font-weight: bold; }
+		</style>
+	</head>
+	<body>
+		<label for="selector">Selector</label>
+		<div class="input-and-validity">
+			<input id="selector" aria-describedby="description" autofocus>
+			<span id="selector-valid">&#9989;</span>
+			<span hidden id="selector-invalid">&#10060;</span>
+		</div>
+		<div id="description">
+			<p aria-live="polite" aria-atomic="true"><span id="matches">&mdash;</span> matches</p>
+			<p id="status"></p>
+		</div>
 
-	<label for="outline">Outline</label>
-	<div class="input-and-validity">
-		<input id="outline">
-		<span id="outline-valid">&#9989;</span>
-		<span hidden id="outline-invalid">&#10060;</span>
-	</div>
+		<details>
+			<summary>Mutation info</summary>
+			<p><span id="runs">&mdash;</span> selector runs</p>
+			<p><span id="mutations">&mdash;</span> observed mutations</p>
+		</details>
 
-	<button id="help">Help</button>
+		<label for="outline">Outline</label>
+		<div class="input-and-validity">
+			<input id="outline">
+			<span id="outline-valid">&#9989;</span>
+			<span hidden id="outline-invalid">&#10060;</span>
+		</div>
 
-	<script src="popup.js"></script>
-</body>
+		<button id="help">Help</button>
+
+		<script src="popup.js"></script>
+	</body>
 </html>

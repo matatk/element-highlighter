@@ -23,14 +23,26 @@ for (const setting in settings) {
 }
 
 chrome.runtime.onMessage.addListener(message => {
-	if (message.name === 'mutations' || message.name === 'matches') {
-		document.getElementById(message.name).innerText =
-			message.data >= 0 ? message.data : '\u2014'
-	} else if (message.name === 'validity') {
-		document.getElementById(`${message.of}-valid`).hidden = !message.data
-		document.getElementById(`${message.of}-invalid`).hidden = message.data
-		document.getElementById(message.of).setAttribute(
-			'aria-invalid', !message.data)
+	switch (message.name) {
+		case 'mutations':
+		case 'runs':
+		case 'matches':
+			document.getElementById(message.name).innerText =
+				message.data >= 0 ? message.data : '\u2014'
+			break
+		case 'validity': {
+			const input = message.of
+			document.getElementById(`${input}-valid`).hidden = !message.data
+			document.getElementById(`${input}-invalid`).hidden = message.data
+			document.getElementById(input).setAttribute(
+				'aria-invalid', !message.data)
+			break
+		}
+		case 'ignoring':
+			document.getElementById('status').innerText = message.data === true
+				? 'Ignoring mutations' : 'Reacting to mutations'
+			break
+		default:
 	}
 })
 

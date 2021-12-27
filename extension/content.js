@@ -8,22 +8,49 @@ const settings = {
 const LANDMARK = 'data-highlight-selector-landmark'
 const highlighted = new Set([])
 const originalInlineOutlines = {}
+const mutationPause = 5e3
+
 let cachedSelector = null
 let cachedOutline = null
-let highlightCounter = 0
-let mutationCounter = 0
-let matchCounter = 0
 let validSelector = true
 let validOutline = true
+
+let highlightCounter = 0
+let mutationCounter = 0
+let runCounter = 0
+let matchCounter = 0
+
+let scheduled = null
+let lastMutationTime = 0
+let sentIgnoringMutationsMessage = false
 
 // Mutation observation
 
 const observer = new MutationObserver(() => {
 	chrome.runtime.sendMessage({ name: 'mutations', data: ++mutationCounter })
-	selectAndhighlight()
+	const now = Date.now()
+	if (now > lastMutationTime + mutationPause) {
+		runDueToMutation()
+		lastMutationTime = now
+	} else {
+		if (scheduled) clearTimeout(scheduled)
+		scheduled = setTimeout(runDueToMutation, mutationPause, now)
+		if (!sentIgnoringMutationsMessage) {
+			chrome.runtime.sendMessage({ name: 'ignoring', data: true })
+			sentIgnoringMutationsMessage = true
+		}
+	}
 })
 
+function runDueToMutation(now) {
+	selectAndhighlight()
+	scheduled = null
+	sentIgnoringMutationsMessage = false
+	lastMutationTime = now
+}
+
 function observeDocument() {
+	chrome.runtime.sendMessage({ name: 'ignoring', data: false })
 	observer.observe(document, {
 		attributes: true,
 		childList: true,
@@ -50,6 +77,7 @@ function removeHighlightsExceptFor(matches = new Set()) {
 		}
 		delete originalInlineOutlines[element]
 
+		console.log(element, element.parentElement)
 		element.parentElement.replaceWith(element)
 
 		highlighted.delete(element)
@@ -102,6 +130,7 @@ function selectAndhighlight() {
 	chrome.runtime.sendMessage(
 		{ name: 'validity', of: 'selector', data: validSelector })
 	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
+	chrome.runtime.sendMessage({ name: 'runs', data: ++runCounter })
 }
 
 function checkOutlineValidity() {
@@ -151,6 +180,11 @@ function reflectVisibility() {
 	if (document.hidden) {
 		observer.disconnect()
 		observer.takeRecords()
+		if (scheduled) {
+			clearTimeout(scheduled)
+			scheduled = null
+		}
+		sentIgnoringMutationsMessage = false
 	} else {
 		startUp()
 	}
@@ -172,5 +206,6 @@ document.addEventListener('visibilitychange', reflectVisibility)
 if (!document.hidden) {  // Firefox auto-injects content scripts
 	chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
 	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
+	chrome.runtime.sendMessage({ name: 'ignoring', data: false })
 	startUp()
 }
