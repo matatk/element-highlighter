@@ -8,7 +8,7 @@ const settings = {
 const LANDMARK = 'data-highlight-selector-landmark'
 const highlighted = new Set([])
 const originalInlineOutlines = {}
-const mutationPause = 5e3
+const mutationPause = 2e3
 
 let cachedSelector = null
 let cachedOutline = null
