@@ -77,8 +77,9 @@ function removeHighlightsExceptFor(matches = new Set()) {
 		}
 		delete originalInlineOutlines[element]
 
-		console.log(element, element.parentElement)
-		element.parentElement.replaceWith(element)
+		// Sometimes, the landmark has gone for some reason. This happens e.g.
+		// in W3C ReSpec documents such as Editor's Drafts
+		if (element.parentElement)element.parentElement.replaceWith(element)
 
 		highlighted.delete(element)
 	}
