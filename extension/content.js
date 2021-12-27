@@ -21,7 +21,7 @@ let runCounter = 0
 let matchCounter = 0
 
 let scheduled = null
-let lastMutationTime = 0
+let lastMutationTime = Date.now()  // due to scan on startup
 let sentIgnoringMutationsMessage = false
 
 // Mutation observation

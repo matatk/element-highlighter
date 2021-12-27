@@ -38,10 +38,13 @@ chrome.runtime.onMessage.addListener(message => {
 				'aria-invalid', !message.data)
 			break
 		}
-		case 'ignoring':
-			document.getElementById('status').innerText = message.data === true
-				? 'Ignoring mutations' : 'Reacting to mutations'
+		case 'ignoring': {
+			const ignoring = message.data === true
+			const indicator = document.getElementById('ignoring')
+			indicator.firstElementChild.hidden = !ignoring
+			indicator.lastElementChild.hidden = ignoring
 			break
+		}
 		default:
 	}
 })
