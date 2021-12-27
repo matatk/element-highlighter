@@ -22,7 +22,8 @@ let matchCounter = 0
 
 let scheduled = null
 let lastMutationTime = Date.now()  // due to scan on startup
-let sentIgnoringMutationsMessage = false
+let sentignoringMessage = false
+let ignoring = false
 
 // Mutation observation
 
@@ -35,9 +36,10 @@ const observer = new MutationObserver(() => {
 	} else {
 		if (scheduled) clearTimeout(scheduled)
 		scheduled = setTimeout(runDueToMutation, mutationPause, now)
-		if (!sentIgnoringMutationsMessage) {
-			chrome.runtime.sendMessage({ name: 'ignoring', data: true })
-			sentIgnoringMutationsMessage = true
+		if (!sentignoringMessage) {
+			ignoring = true
+			chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
+			sentignoringMessage = true
 		}
 	}
 })
@@ -45,12 +47,13 @@ const observer = new MutationObserver(() => {
 function runDueToMutation(now) {
 	selectAndhighlight()
 	scheduled = null
-	sentIgnoringMutationsMessage = false
+	sentignoringMessage = false
 	lastMutationTime = now
 }
 
 function observeDocument() {
-	chrome.runtime.sendMessage({ name: 'ignoring', data: false })
+	ignoring = false
+	chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
 	observer.observe(document, {
 		attributes: true,
 		childList: true,
@@ -77,8 +80,9 @@ function removeHighlightsExceptFor(matches = new Set()) {
 		}
 		delete originalInlineOutlines[element]
 
-		// Sometimes, the landmark has gone for some reason. This happens e.g.
-		// in W3C ReSpec documents such as Editor's Drafts
+		// FIXME: problem is it not being in body?
+		// TODO: Sometimes, the landmark has gone for some reason. This happens
+		//       e.g. in W3C ReSpec documents such as Editor's Drafts
 		if (element.parentElement)element.parentElement.replaceWith(element)
 
 		highlighted.delete(element)
@@ -94,8 +98,13 @@ function highlight(elements) {
 
 		const wrapper = document.createElement('DIV')
 		makeElementIntoLandmark(wrapper, true)
-		element.parentElement.insertBefore(wrapper, element)
-		wrapper.appendChild(element)
+		// FIXME: problem is it not being in body?
+		// TODO: Sometimes there is no parent element. This tends to occur on
+		//       pages that are making mutations, with the universal selector.
+		if (element.parentElement) {
+			element.parentElement.insertBefore(wrapper, element)
+			wrapper.appendChild(element)
+		}
 
 		highlighted.add(element)
 	}
@@ -169,6 +178,8 @@ chrome.storage.onChanged.addListener((changes) => {
 chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'get-info') {  // only sent to active window tab
 		chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
+		chrome.runtime.sendMessage({ name: 'runs', data: runCounter })
+		chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
 		chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
 		chrome.runtime.sendMessage(
 			{ name: 'validity', of: 'selector', data: validSelector })
@@ -185,7 +196,7 @@ function reflectVisibility() {
 			clearTimeout(scheduled)
 			scheduled = null
 		}
-		sentIgnoringMutationsMessage = false
+		sentignoringMessage = false
 	} else {
 		startUp()
 	}
@@ -207,6 +218,6 @@ document.addEventListener('visibilitychange', reflectVisibility)
 if (!document.hidden) {  // Firefox auto-injects content scripts
 	chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
 	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
-	chrome.runtime.sendMessage({ name: 'ignoring', data: false })
+	chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
 	startUp()
 }
