@@ -5,7 +5,7 @@ const settings = {
 	'outline': '4px solid yellow'
 }
 
-const LANDMARK = 'data-highlight-selector-landmark'
+const LANDMARK_ATTR = 'data-highlight-selector-landmark'
 const highlighted = new Set([])
 const originalInlineOutlines = {}
 const mutationPause = 2e3
@@ -63,28 +63,28 @@ function observeDocument() {
 
 // Managing highlights (outlines and landmarks)
 
-function makeElementIntoLandmark(element, asWrapper) {
-	element.setAttribute('role', 'region')
-	element.setAttribute('aria-roledescription', 'Highlight')
-	element.setAttribute('aria-label', ++highlightCounter)
-	element.setAttribute(LANDMARK, asWrapper ? 'wrapper' : '')
+function makeWrappingLandmark() {
+	const wrapper = document.createElement('DIV')
+	wrapper.setAttribute('role', 'region')
+	wrapper.setAttribute('aria-roledescription', 'Highlight')
+	wrapper.setAttribute('aria-label', ++highlightCounter)
+	wrapper.setAttribute(LANDMARK_ATTR, '')
+	return wrapper
 }
 
 function removeHighlightsExceptFor(matches = new Set()) {
 	for (const element of highlighted) {
 		if (matches.has(element)) continue
 
-		element.style.outline = originalInlineOutlines[element] ?? ''
-		if (element.getAttribute('style') === '') {
-			element.removeAttribute('style')
+		if (document.body.contains(element)) {
+			element.style.outline = originalInlineOutlines[element] ?? ''
+			if (element.getAttribute('style') === '') {
+				element.removeAttribute('style')
+			}
+			element.parentElement.replaceWith(element)
 		}
+
 		delete originalInlineOutlines[element]
-
-		// FIXME: problem is it not being in body?
-		// TODO: Sometimes, the landmark has gone for some reason. This happens
-		//       e.g. in W3C ReSpec documents such as Editor's Drafts
-		if (element.parentElement)element.parentElement.replaceWith(element)
-
 		highlighted.delete(element)
 	}
 }
@@ -96,15 +96,9 @@ function highlight(elements) {
 		originalInlineOutlines[element] = element.style.outline
 		if (validOutline) element.style.outline = cachedOutline
 
-		const wrapper = document.createElement('DIV')
-		makeElementIntoLandmark(wrapper, true)
-		// FIXME: problem is it not being in body?
-		// TODO: Sometimes there is no parent element. This tends to occur on
-		//       pages that are making mutations, with the universal selector.
-		if (element.parentElement) {
-			element.parentElement.insertBefore(wrapper, element)
-			wrapper.appendChild(element)
-		}
+		const wrapper = makeWrappingLandmark()
+		element.parentElement.insertBefore(wrapper, element)
+		wrapper.appendChild(element)
 
 		highlighted.add(element)
 	}
@@ -113,9 +107,10 @@ function highlight(elements) {
 function selectAndhighlight() {
 	validSelector = true
 	if (cachedSelector) {
+		let nodeList = null
 		let matches = null
 		try {
-			matches = new Set(document.querySelectorAll(cachedSelector))
+			nodeList = document.body.querySelectorAll(cachedSelector)
 		} catch {
 			validSelector = false
 			chrome.runtime.sendMessage(
@@ -123,6 +118,8 @@ function selectAndhighlight() {
 			chrome.runtime.sendMessage({ name: 'matches', data: -1 })
 			return
 		}
+		matches = new Set(Array.from(nodeList).filter(
+			element => !element.hasAttribute(LANDMARK_ATTR)))
 		matchCounter = matches.size
 		if (matches) {
 			observer.disconnect()
