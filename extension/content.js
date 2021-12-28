@@ -5,7 +5,8 @@ const settings = {
 	'outline': '4px solid yellow'
 }
 
-const LANDMARK_ATTR = 'data-highlight-selector-landmark'
+const LANDMARK_MARKER_ATTR = 'data-highlight-selector-is-landmark'
+const LANDMARK_REFERENCE_ATTR = 'data-highlight-selector-has-landmark'
 const highlighted = new Set([])
 const originalInlineOutlines = {}
 const mutationPause = 2e3
@@ -68,7 +69,7 @@ function makeWrappingLandmark() {
 	wrapper.setAttribute('role', 'region')
 	wrapper.setAttribute('aria-roledescription', 'Highlight')
 	wrapper.setAttribute('aria-label', ++highlightCounter)
-	wrapper.setAttribute(LANDMARK_ATTR, '')
+	wrapper.setAttribute(LANDMARK_MARKER_ATTR, '')
 	return wrapper
 }
 
@@ -76,13 +77,25 @@ function removeHighlightsExceptFor(matches = new Set()) {
 	for (const element of highlighted) {
 		if (matches.has(element)) continue
 
+		// The landmark added should be the element's parent, but other code
+		// could've moved things around and this may no longer be the case.
 		if (document.body.contains(element)) {
 			element.style.outline = originalInlineOutlines[element] ?? ''
 			if (element.getAttribute('style') === '') {
 				element.removeAttribute('style')
 			}
-			element.parentElement.replaceWith(element)
 		}
+
+		// TODO: Store both in memory together so most of this not needed.
+		// Because we can't rely on the parent relationship...
+		const counter = element.getAttribute(LANDMARK_REFERENCE_ATTR)
+		const query = `[${LANDMARK_MARKER_ATTR}][aria-label="${counter}"]`
+		const landmark = document.body.querySelector(query)
+		console.assert(
+			landmark.children.length === 1,
+			'landmark', counter, 'has', landmark.children.length, 'children',
+			landmark, element)
+		landmark.replaceWith(landmark.firstChild)
 
 		delete originalInlineOutlines[element]
 		highlighted.delete(element)
@@ -96,9 +109,10 @@ function highlight(elements) {
 		originalInlineOutlines[element] = element.style.outline
 		if (validOutline) element.style.outline = cachedOutline
 
-		const wrapper = makeWrappingLandmark()
+		const wrapper = makeWrappingLandmark()  // increments highlightCounter
 		element.parentElement.insertBefore(wrapper, element)
 		wrapper.appendChild(element)
+		element.setAttribute(LANDMARK_REFERENCE_ATTR, highlightCounter)
 
 		highlighted.add(element)
 	}
@@ -119,7 +133,7 @@ function selectAndhighlight() {
 			return
 		}
 		matches = new Set(Array.from(nodeList).filter(
-			element => !element.hasAttribute(LANDMARK_ATTR)))
+			element => !element.hasAttribute(LANDMARK_MARKER_ATTR)))
 		matchCounter = matches.size
 		if (matches) {
 			observer.disconnect()
