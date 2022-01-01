@@ -6,9 +6,7 @@ const settings = {
 }
 
 const LANDMARK_MARKER_ATTR = 'data-highlight-selector-landmark'
-// TODO: Merge these two?
-const highlighted = new Map()  // maps elements to their landmark elements
-const originalInlineOutlines = {}
+const highlighted = new Map()  // element : { outline[str], landmark[element] }
 const mutationPause = 2e3
 
 let cachedSelector = null
@@ -74,14 +72,13 @@ function makeWrappingLandmark() {
 }
 
 function removeHighlightsExceptFor(matches = new Set()) {
-	for (const [element, landmark] of highlighted.entries()) {
+	// The landmark should be the element's parent, but other code running on
+	// the page could've moved things around, so we store references to both.
+	for (const [element, { outline, landmark }] of highlighted.entries()) {
 		if (matches.has(element)) continue
 
-		// The landmark should be the element's parent, but other code could've
-		// moved things around and this may no longer be the case.
-
 		if (document.body.contains(element)) {
-			element.style.outline = originalInlineOutlines[element] ?? ''
+			element.style.outline = outline ?? ''
 			if (element.getAttribute('style') === '') {
 				element.removeAttribute('style')
 			}
@@ -95,7 +92,6 @@ function removeHighlightsExceptFor(matches = new Set()) {
 			landmark.remove()
 		}
 
-		delete originalInlineOutlines[element]
 		highlighted.delete(element)
 	}
 }
@@ -104,14 +100,14 @@ function highlight(elements) {
 	for (const element of elements) {
 		if (highlighted.has(element)) continue
 
-		originalInlineOutlines[element] = element.style.outline
+		const outline = element.style.outline
 		if (validOutline) element.style.outline = cachedOutline
 
-		const wrapper = makeWrappingLandmark()
-		element.parentElement.insertBefore(wrapper, element)
-		wrapper.appendChild(element)
+		const landmark = makeWrappingLandmark()
+		element.parentElement.insertBefore(landmark, element)
+		landmark.appendChild(element)
 
-		highlighted.set(element, wrapper)
+		highlighted.set(element, { outline, landmark })
 	}
 }
 
