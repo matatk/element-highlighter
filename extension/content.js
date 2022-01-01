@@ -6,53 +6,54 @@ const settings = {
 }
 
 const LANDMARK_MARKER_ATTR = 'data-highlight-selector-landmark'
-const highlighted = new Map()  // element : { outline[str], landmark[element] }
-const mutationPause = 2e3
+const MUTATION_IGNORE_TIME = 2e3
+const gHighlighted = new Map()  // element : { outline[str], landmark[element] }
 
-let cachedSelector = null
-let cachedOutline = null
-let validSelector = true
-let validOutline = true
+let gCachedSelector = null
+let gCachedOutline = null
+let gValidSelector = true
+let gValidOutline = true
 
-let highlightCounter = 0
-let mutationCounter = 0
-let runCounter = 0
-let matchCounter = 0
+let gHighlightCounter = 0
+let gMutationCounter = 0
+let gRunCounter = 0
+let gMatchCounter = 0
 
-let scheduled = null
-let lastMutationTime = Date.now()  // due to query run on startup
-let sentignoringMessage = false
-let ignoring = false
+let gScheduledRun = null
+let gLastMutationTime = Date.now()  // due to query run on startup
+let gSentIgnoringMutationsMessage = false
+let gIgnoringMutations = false
 
 // Mutation observation
 
 const observer = new MutationObserver(() => {
-	chrome.runtime.sendMessage({ name: 'mutations', data: ++mutationCounter })
+	chrome.runtime.sendMessage({ name: 'mutations', data: ++gMutationCounter })
 	const now = Date.now()
-	if (now > lastMutationTime + mutationPause) {
+	if (now > gLastMutationTime + MUTATION_IGNORE_TIME) {
 		runDueToMutation()
-		lastMutationTime = now
+		gLastMutationTime = now
 	} else {
-		if (scheduled) clearTimeout(scheduled)
-		scheduled = setTimeout(runDueToMutation, mutationPause, now)
-		if (!sentignoringMessage) {
-			ignoring = true
-			chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
-			sentignoringMessage = true
+		if (gScheduledRun) clearTimeout(gScheduledRun)
+		gScheduledRun = setTimeout(runDueToMutation, MUTATION_IGNORE_TIME, now)
+		if (!gSentIgnoringMutationsMessage) {
+			gIgnoringMutations = true
+			chrome.runtime.sendMessage(
+				{ name: 'ignoring', data: gIgnoringMutations })
+			gSentIgnoringMutationsMessage = true
 		}
 	}
 })
 
 function runDueToMutation(now) {
 	selectAndhighlight()
-	scheduled = null
-	sentignoringMessage = false
-	lastMutationTime = now
+	gScheduledRun = null
+	gSentIgnoringMutationsMessage = false
+	gLastMutationTime = now
 }
 
 function observeDocument() {
-	ignoring = false
-	chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
+	gIgnoringMutations = false
+	chrome.runtime.sendMessage({ name: 'ignoring', data: gIgnoringMutations })
 	observer.observe(document, {
 		attributes: true,
 		childList: true,
@@ -66,7 +67,7 @@ function makeWrappingLandmark() {
 	const wrapper = document.createElement('DIV')
 	wrapper.setAttribute('role', 'region')
 	wrapper.setAttribute('aria-roledescription', 'Highlight')
-	wrapper.setAttribute('aria-label', ++highlightCounter)
+	wrapper.setAttribute('aria-label', ++gHighlightCounter)
 	wrapper.setAttribute(LANDMARK_MARKER_ATTR, '')
 	return wrapper
 }
@@ -74,7 +75,7 @@ function makeWrappingLandmark() {
 function removeHighlightsExceptFor(matches = new Set()) {
 	// The landmark should be the element's parent, but other code running on
 	// the page could've moved things around, so we store references to both.
-	for (const [element, { outline, landmark }] of highlighted.entries()) {
+	for (const [element, { outline, landmark }] of gHighlighted.entries()) {
 		if (matches.has(element)) continue
 
 		if (document.body.contains(element)) {
@@ -92,53 +93,53 @@ function removeHighlightsExceptFor(matches = new Set()) {
 			landmark.remove()
 		}
 
-		highlighted.delete(element)
+		gHighlighted.delete(element)
 	}
 }
 
 function highlight(elements) {
 	for (const element of elements) {
-		if (highlighted.has(element)) continue
+		if (gHighlighted.has(element)) continue
 
 		const outline = element.style.outline
-		if (validOutline) element.style.outline = cachedOutline
+		if (gValidOutline) element.style.outline = gCachedOutline
 
 		const landmark = makeWrappingLandmark()
 		element.parentElement.insertBefore(landmark, element)
 		landmark.appendChild(element)
 
-		highlighted.set(element, { outline, landmark })
+		gHighlighted.set(element, { outline, landmark })
 	}
 }
 
 function selectAndhighlight() {
-	validSelector = true
-	ignoring = true
-	matchCounter = -1
+	gValidSelector = true
+	gIgnoringMutations = true
+	gMatchCounter = -1
 	let foundElements  // eslint-disable-line init-declarations
 
-	if (cachedSelector) {
+	if (gCachedSelector) {
 		let nodeList = null
 		try {
-			nodeList = document.body.querySelectorAll(cachedSelector)
+			nodeList = document.body.querySelectorAll(gCachedSelector)
 		} catch {
-			validSelector = false
+			gValidSelector = false
 		}
-		if (validSelector) {
+		if (gValidSelector) {
 			foundElements = new Set(Array.from(nodeList).filter(
 				element => !element.hasAttribute(LANDMARK_MARKER_ATTR)))
-			matchCounter = foundElements.size
-			runCounter++
+			gMatchCounter = foundElements.size
+			gRunCounter++
 		}
 	}
 
-	if (!cachedSelector || !validSelector || foundElements) {
+	if (!gCachedSelector || !gValidSelector || foundElements) {
 		observer.disconnect()
 		observer.takeRecords()
 		removeHighlightsExceptFor(foundElements)
 	}
 
-	if (matchCounter > 0) {
+	if (gMatchCounter > 0) {
 		highlight(foundElements)
 		observeDocument()
 	}
@@ -148,23 +149,23 @@ function selectAndhighlight() {
 
 function checkOutlineValidity() {
 	const test = document.createElement('DIV')
-	test.style.outline = cachedOutline
-	validOutline = test.style.outline !== ''
+	test.style.outline = gCachedOutline
+	gValidOutline = test.style.outline !== ''
 	test.remove()
 	chrome.runtime.sendMessage(
-		{ name: 'validity', of: 'outline', data: validOutline })
+		{ name: 'validity', of: 'outline', data: gValidOutline })
 }
 
 function sendInfo(includeOutline = false) {
-	chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
-	chrome.runtime.sendMessage({ name: 'runs', data: runCounter })
-	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
-	chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
+	chrome.runtime.sendMessage({ name: 'mutations', data: gMutationCounter })
+	chrome.runtime.sendMessage({ name: 'runs', data: gRunCounter })
+	chrome.runtime.sendMessage({ name: 'matches', data: gMatchCounter })
+	chrome.runtime.sendMessage({ name: 'ignoring', data: gIgnoringMutations })
 	chrome.runtime.sendMessage(
-		{ name: 'validity', of: 'selector', data: validSelector })
+		{ name: 'validity', of: 'selector', data: gValidSelector })
 	if (includeOutline) {
 		chrome.runtime.sendMessage(
-			{ name: 'validity', of: 'outline', data: validOutline })
+			{ name: 'validity', of: 'outline', data: gValidOutline })
 	}
 }
 
@@ -173,20 +174,20 @@ function sendInfo(includeOutline = false) {
 chrome.storage.onChanged.addListener((changes) => {
 	if (!document.hidden) {
 		if ('selector' in changes) {
-			cachedSelector = changes.selector.newValue
+			gCachedSelector = changes.selector.newValue
 			selectAndhighlight()
 		}
 		if ('outline' in changes) {
-			cachedOutline = changes.outline.newValue
+			gCachedOutline = changes.outline.newValue
 			observer.disconnect()
 			observer.takeRecords()
 			checkOutlineValidity()
-			if (validOutline) {
-				for (const element of highlighted.keys()) {
-					element.style.outline = cachedOutline
+			if (gValidOutline) {
+				for (const element of gHighlighted.keys()) {
+					element.style.outline = gCachedOutline
 				}
 			}
-			if (cachedSelector) observeDocument()
+			if (gCachedSelector) observeDocument()
 		}
 	}
 })
@@ -200,11 +201,11 @@ function reflectVisibility() {
 	if (document.hidden) {
 		observer.disconnect()
 		observer.takeRecords()
-		if (scheduled) {
-			clearTimeout(scheduled)
-			scheduled = null
+		if (gScheduledRun) {
+			clearTimeout(gScheduledRun)
+			gScheduledRun = null
 		}
-		sentignoringMessage = false
+		gSentIgnoringMutationsMessage = false
 	} else {
 		startUp()
 	}
@@ -214,8 +215,8 @@ function reflectVisibility() {
 
 function startUp() {
 	chrome.storage.sync.get(settings, items => {
-		cachedSelector = items.selector
-		cachedOutline = items.outline
+		gCachedSelector = items.selector
+		gCachedOutline = items.outline
 		checkOutlineValidity()
 		selectAndhighlight()
 	})
