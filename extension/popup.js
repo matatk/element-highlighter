@@ -2,24 +2,38 @@
 // NOTE: Also in content.js
 const settings = {
 	'selector': null,
-	'outline': '4px solid yellow'
+	'outline': '4px solid yellow',
+	'monitor-changes': true
 }
 
 chrome.storage.sync.get(settings, items => {
 	for (const setting in settings) {
-		if (items[setting]) {
-			document.getElementById(setting).value = items[setting]
+		const control = document.getElementById(setting)
+		if (typeof settings[setting] === 'boolean') {
+			control.checked = items[setting]
+		} else {
+			control.value = items[setting]
 		}
 	}
 })
 
+const changeHandler = (input, func) => input.addEventListener('change', func)
+
 for (const setting in settings) {
-	document.getElementById(setting).addEventListener('change', event => {
-		if (setting === 'outline' && event.target.value === '') {
-			event.target.value = settings.outline
-		}
-		chrome.storage.sync.set({ [setting]: event.target.value })
-	})
+	const control = document.getElementById(setting)
+	if (setting === 'outline') {
+		changeHandler(control, event => {
+			if (event.target.value === '') event.target.value = settings.outline
+		})
+	} else if (typeof settings[setting] === 'boolean') {
+		changeHandler(control, event => {
+			chrome.storage.sync.set({ [setting]: event.target.checked })
+		})
+	} else {
+		changeHandler(control, event => {
+			chrome.storage.sync.set({ [setting]: event.target.value })
+		})
+	}
 }
 
 chrome.runtime.onMessage.addListener(message => {
@@ -38,13 +52,9 @@ chrome.runtime.onMessage.addListener(message => {
 				'aria-invalid', !message.data)
 			break
 		}
-		case 'ignoring': {
-			const ignoring = message.data === true
-			const indicator = document.getElementById('ignoring')
-			indicator.firstElementChild.hidden = !ignoring
-			indicator.lastElementChild.hidden = ignoring
+		case 'state':
+			document.getElementById('state').innerText = message.data
 			break
-		}
 		default:
 	}
 })

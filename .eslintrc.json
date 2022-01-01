@@ -66,10 +66,6 @@
     "func-call-spacing": "error",
     "func-name-matching": "error",
     "func-names": "error",
-    "func-style": [
-      "error",
-      "declaration"
-    ],
     "generator-star-spacing": "error",
     "grouped-accessor-pairs": "error",
     "guard-for-in": "off",

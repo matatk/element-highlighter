@@ -2,8 +2,15 @@
 // NOTE: Also in popup.js
 const settings = {
 	'selector': null,
-	'outline': '4px solid yellow'
+	'outline': '4px solid yellow',
+	'monitor-changes': true
 }
+
+const states = Object.freeze({
+	'manual': 'Manual',
+	'observing': 'Monitoring',
+	'ignoring': 'Ignoring'
+})
 
 const LANDMARK_MARKER_ATTR = 'data-highlight-selector-landmark'
 const MUTATION_IGNORE_TIME = 2e3
@@ -22,11 +29,12 @@ let gMatchCounter = 0
 let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
 let gSentIgnoringMutationsMessage = false
-let gIgnoringMutations = false
+
+let gState = null
 
 // Mutation observation
 
-const observer = new MutationObserver(() => {
+const gObserver = new MutationObserver(() => {
 	chrome.runtime.sendMessage({ name: 'mutations', data: ++gMutationCounter })
 	const now = Date.now()
 	if (now > gLastMutationTime + MUTATION_IGNORE_TIME) {
@@ -36,9 +44,8 @@ const observer = new MutationObserver(() => {
 		if (gScheduledRun) clearTimeout(gScheduledRun)
 		gScheduledRun = setTimeout(runDueToMutation, MUTATION_IGNORE_TIME, now)
 		if (!gSentIgnoringMutationsMessage) {
-			gIgnoringMutations = true
-			chrome.runtime.sendMessage(
-				{ name: 'ignoring', data: gIgnoringMutations })
+			gState = states.ignoring
+			chrome.runtime.sendMessage({ name: 'state', data: gState })
 			gSentIgnoringMutationsMessage = true
 		}
 	}
@@ -52,13 +59,28 @@ function runDueToMutation(now) {
 }
 
 function observeDocument() {
-	gIgnoringMutations = false
-	chrome.runtime.sendMessage({ name: 'ignoring', data: gIgnoringMutations })
-	observer.observe(document, {
+	if (gState === states.manual) return
+	gObserver.observe(document, {
 		attributes: true,
 		childList: true,
 		subtree: true
 	})
+	gState = states.observing
+	chrome.runtime.sendMessage({ name: 'state', data: gState })
+}
+
+function stopObserving() {
+	gObserver.disconnect()
+	gObserver.takeRecords()
+}
+
+function stopObservingAndUnScheduleRun() {
+	stopObserving()
+	if (gScheduledRun) {
+		clearTimeout(gScheduledRun)
+		gScheduledRun = null
+	}
+	gSentIgnoringMutationsMessage = false
 }
 
 // Managing highlights (outlines and landmarks)
@@ -114,7 +136,6 @@ function highlight(elements) {
 
 function selectAndhighlight() {
 	gValidSelector = true
-	gIgnoringMutations = true
 	gMatchCounter = -1
 	let foundElements  // eslint-disable-line init-declarations
 
@@ -134,8 +155,7 @@ function selectAndhighlight() {
 	}
 
 	if (!gCachedSelector || !gValidSelector || foundElements) {
-		observer.disconnect()
-		observer.takeRecords()
+		stopObserving()
 		removeHighlightsExceptFor(foundElements)
 	}
 
@@ -160,7 +180,7 @@ function sendInfo(includeOutline = false) {
 	chrome.runtime.sendMessage({ name: 'mutations', data: gMutationCounter })
 	chrome.runtime.sendMessage({ name: 'runs', data: gRunCounter })
 	chrome.runtime.sendMessage({ name: 'matches', data: gMatchCounter })
-	chrome.runtime.sendMessage({ name: 'ignoring', data: gIgnoringMutations })
+	chrome.runtime.sendMessage({ name: 'state', data: gState })
 	chrome.runtime.sendMessage(
 		{ name: 'validity', of: 'selector', data: gValidSelector })
 	if (includeOutline) {
@@ -179,8 +199,7 @@ chrome.storage.onChanged.addListener((changes) => {
 		}
 		if ('outline' in changes) {
 			gCachedOutline = changes.outline.newValue
-			observer.disconnect()
-			observer.takeRecords()
+			stopObserving()
 			checkOutlineValidity()
 			if (gValidOutline) {
 				for (const element of gHighlighted.keys()) {
@@ -188,6 +207,16 @@ chrome.storage.onChanged.addListener((changes) => {
 				}
 			}
 			if (gCachedSelector) observeDocument()
+		}
+		if ('monitor-changes' in changes) {
+			if (changes['monitor-changes'].newValue === true) {
+				gState = states.observing
+				observeDocument()
+			} else {
+				stopObservingAndUnScheduleRun()
+				gState = states.manual
+				chrome.runtime.sendMessage({ name: 'state', data: gState })
+			}
 		}
 	}
 })
@@ -199,13 +228,7 @@ chrome.runtime.onMessage.addListener(message => {
 
 function reflectVisibility() {
 	if (document.hidden) {
-		observer.disconnect()
-		observer.takeRecords()
-		if (gScheduledRun) {
-			clearTimeout(gScheduledRun)
-			gScheduledRun = null
-		}
-		gSentIgnoringMutationsMessage = false
+		stopObservingAndUnScheduleRun()
 	} else {
 		startUp()
 	}
@@ -217,6 +240,7 @@ function startUp() {
 	chrome.storage.sync.get(settings, items => {
 		gCachedSelector = items.selector
 		gCachedOutline = items.outline
+		gState = items['monitor-changes'] ? states.observing : states.manual
 		checkOutlineValidity()
 		selectAndhighlight()
 	})

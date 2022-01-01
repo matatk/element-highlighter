@@ -5,24 +5,32 @@
 		<title></title>
 		<style>
 body { margin: 1em; }
+
 label {
 	display: block;
 	font-weight: bold;
 	margin-bottom: 0.5em;
 }
+
 * + label, * + button {
 	margin-top: 1em;
 }
-.input-and-validity {
+
+.input-and-validity, .tick {
 	display: flex;
 	align-items: center;  /* needed for Firefox */
 	gap: 0.5em;
 }
+
+.tick input { margin: 0; }
+
 button {
 	text-align: center;  /* needed for Firefox */
 	width: 100%;         /* needed for Chrome */
 }
+
 p:last-child { margin-bottom: 0; }
+
 summary { font-weight: bold; }
 		</style>
 	</head>
@@ -35,12 +43,14 @@ summary { font-weight: bold; }
 		</div>
 		<div id="description">
 			<p aria-live="polite" aria-atomic="true"><span id="matches">&mdash;</span> matches</p>
-			<p id="ignoring">
-				<span hidden>Ignoring mutations</span>
-				<span hidden>Observing mutations</span>
-			</p>
+			<p id="state">&mdash;</p>
 			<p><span id="runs">&mdash;</span> selector runs</p>
 			<p><span id="mutations">&mdash;</span> observed mutations</p>
+		</div>
+
+		<div class="tick">
+			<input type="checkbox" id="monitor-changes">
+			<label for="monitor-changes">Monitor page for changes</label>
 		</div>
 
 		<label for="outline">Outline</label>
