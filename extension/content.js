@@ -5,9 +5,9 @@ const settings = {
 	'outline': '4px solid yellow'
 }
 
-const LANDMARK_MARKER_ATTR = 'data-highlight-selector-is-landmark'
-const LANDMARK_REFERENCE_ATTR = 'data-highlight-selector-has-landmark'
-const highlighted = new Set([])
+const LANDMARK_MARKER_ATTR = 'data-highlight-selector-landmark'
+// TODO: Merge these two?
+const highlighted = new Map()  // maps elements to their landmark elements
 const originalInlineOutlines = {}
 const mutationPause = 2e3
 
@@ -74,28 +74,26 @@ function makeWrappingLandmark() {
 }
 
 function removeHighlightsExceptFor(matches = new Set()) {
-	for (const element of highlighted) {
+	for (const [element, landmark] of highlighted.entries()) {
 		if (matches.has(element)) continue
 
-		// The landmark added should be the element's parent, but other code
-		// could've moved things around and this may no longer be the case.
+		// The landmark should be the element's parent, but other code could've
+		// moved things around and this may no longer be the case.
+
 		if (document.body.contains(element)) {
 			element.style.outline = originalInlineOutlines[element] ?? ''
 			if (element.getAttribute('style') === '') {
 				element.removeAttribute('style')
 			}
+		} else {
+			element.remove()
 		}
 
-		// TODO: Store both in memory together so most of this not needed.
-		// Because we can't rely on the parent relationship...
-		const counter = element.getAttribute(LANDMARK_REFERENCE_ATTR)
-		const query = `[${LANDMARK_MARKER_ATTR}][aria-label="${counter}"]`
-		const landmark = document.body.querySelector(query)
-		console.assert(
-			landmark.children.length === 1,
-			'landmark', counter, 'has', landmark.children.length, 'children',
-			landmark, element)
-		landmark.replaceWith(landmark.firstChild)
+		if (document.body.contains(landmark)) {
+			landmark.replaceWith(...landmark.childNodes)
+		} else {
+			landmark.remove()
+		}
 
 		delete originalInlineOutlines[element]
 		highlighted.delete(element)
@@ -109,12 +107,11 @@ function highlight(elements) {
 		originalInlineOutlines[element] = element.style.outline
 		if (validOutline) element.style.outline = cachedOutline
 
-		const wrapper = makeWrappingLandmark()  // increments highlightCounter
+		const wrapper = makeWrappingLandmark()
 		element.parentElement.insertBefore(wrapper, element)
 		wrapper.appendChild(element)
-		element.setAttribute(LANDMARK_REFERENCE_ATTR, highlightCounter)
 
-		highlighted.add(element)
+		highlighted.set(element, wrapper)
 	}
 }
 
@@ -177,7 +174,7 @@ chrome.storage.onChanged.addListener((changes) => {
 			observer.takeRecords()
 			checkOutlineValidity()
 			if (validOutline) {
-				for (const element of highlighted) {
+				for (const element of highlighted.keys()) {
 					element.style.outline = cachedOutline
 				}
 			}
