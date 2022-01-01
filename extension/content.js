@@ -20,7 +20,7 @@ let runCounter = 0
 let matchCounter = 0
 
 let scheduled = null
-let lastMutationTime = Date.now()  // due to scan on startup
+let lastMutationTime = Date.now()  // due to query run on startup
 let sentignoringMessage = false
 let ignoring = false
 
@@ -113,38 +113,41 @@ function highlight(elements) {
 
 function selectAndhighlight() {
 	validSelector = true
+	ignoring = true
+	matchCounter = -1
+	let foundElements  // eslint-disable-line init-declarations
+
 	if (cachedSelector) {
 		let nodeList = null
-		let matches = null
 		try {
 			nodeList = document.body.querySelectorAll(cachedSelector)
 		} catch {
 			validSelector = false
-			chrome.runtime.sendMessage(
-				{ name: 'validity', of: 'selector', data: validSelector })
-			chrome.runtime.sendMessage({ name: 'matches', data: -1 })
-			return
 		}
-		matches = new Set(Array.from(nodeList).filter(
-			element => !element.hasAttribute(LANDMARK_MARKER_ATTR)))
-		matchCounter = matches.size
-		if (matches) {
-			observer.disconnect()
-			observer.takeRecords()
-			removeHighlightsExceptFor(matches)
-			highlight(matches)
+		if (validSelector) {
+			foundElements = new Set(Array.from(nodeList).filter(
+				element => !element.hasAttribute(LANDMARK_MARKER_ATTR)))
+			matchCounter = foundElements.size
 		}
-		observeDocument()
-	} else {
-		matchCounter = -1
-		removeHighlightsExceptFor()
+	}
+
+	if (!cachedSelector || !validSelector || foundElements) {
 		observer.disconnect()
 		observer.takeRecords()
+		removeHighlightsExceptFor(foundElements)
 	}
+
+	if (matchCounter > 0) {
+		highlight(foundElements)
+		observeDocument()
+	}
+
+	// TODO: DRY with get-info
 	chrome.runtime.sendMessage(
 		{ name: 'validity', of: 'selector', data: validSelector })
-	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
+	chrome.runtime.sendMessage({ name: 'foundElements', data: matchCounter })
 	chrome.runtime.sendMessage({ name: 'runs', data: ++runCounter })
+	chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
 }
 
 function checkOutlineValidity() {
@@ -183,8 +186,8 @@ chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'get-info') {  // only sent to active window tab
 		chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
 		chrome.runtime.sendMessage({ name: 'runs', data: runCounter })
-		chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
 		chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
+		chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
 		chrome.runtime.sendMessage(
 			{ name: 'validity', of: 'selector', data: validSelector })
 		chrome.runtime.sendMessage(
@@ -220,8 +223,5 @@ function startUp() {
 document.addEventListener('visibilitychange', reflectVisibility)
 
 if (!document.hidden) {  // Firefox auto-injects content scripts
-	chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
-	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
-	chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
 	startUp()
 }
