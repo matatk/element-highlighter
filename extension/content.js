@@ -128,6 +128,7 @@ function selectAndhighlight() {
 			foundElements = new Set(Array.from(nodeList).filter(
 				element => !element.hasAttribute(LANDMARK_MARKER_ATTR)))
 			matchCounter = foundElements.size
+			runCounter++
 		}
 	}
 
@@ -142,12 +143,7 @@ function selectAndhighlight() {
 		observeDocument()
 	}
 
-	// TODO: DRY with get-info
-	chrome.runtime.sendMessage(
-		{ name: 'validity', of: 'selector', data: validSelector })
-	chrome.runtime.sendMessage({ name: 'foundElements', data: matchCounter })
-	chrome.runtime.sendMessage({ name: 'runs', data: ++runCounter })
-	chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
+	sendInfo()
 }
 
 function checkOutlineValidity() {
@@ -157,6 +153,19 @@ function checkOutlineValidity() {
 	test.remove()
 	chrome.runtime.sendMessage(
 		{ name: 'validity', of: 'outline', data: validOutline })
+}
+
+function sendInfo(includeOutline = false) {
+	chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
+	chrome.runtime.sendMessage({ name: 'runs', data: runCounter })
+	chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
+	chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
+	chrome.runtime.sendMessage(
+		{ name: 'validity', of: 'selector', data: validSelector })
+	if (includeOutline) {
+		chrome.runtime.sendMessage(
+			{ name: 'validity', of: 'outline', data: validOutline })
+	}
 }
 
 // Event handlers
@@ -183,16 +192,8 @@ chrome.storage.onChanged.addListener((changes) => {
 })
 
 chrome.runtime.onMessage.addListener(message => {
-	if (message.name === 'get-info') {  // only sent to active window tab
-		chrome.runtime.sendMessage({ name: 'mutations', data: mutationCounter })
-		chrome.runtime.sendMessage({ name: 'runs', data: runCounter })
-		chrome.runtime.sendMessage({ name: 'matches', data: matchCounter })
-		chrome.runtime.sendMessage({ name: 'ignoring', data: ignoring })
-		chrome.runtime.sendMessage(
-			{ name: 'validity', of: 'selector', data: validSelector })
-		chrome.runtime.sendMessage(
-			{ name: 'validity', of: 'outline', data: validOutline })
-	}
+	// The popup only sends messages to the active window tab
+	if (message.name === 'get-info') sendInfo(true)
 })
 
 function reflectVisibility() {
@@ -222,6 +223,5 @@ function startUp() {
 
 document.addEventListener('visibilitychange', reflectVisibility)
 
-if (!document.hidden) {  // Firefox auto-injects content scripts
-	startUp()
-}
+// Firefox auto-injects content scripts
+if (!document.hidden) startUp()
