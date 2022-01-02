@@ -3,7 +3,7 @@
 const settings = {
 	'selector': null,
 	'outline': '4px solid orange',
-	'monitor-changes': true,
+	'monitor': true,
 	'landmarks': false
 }
 
@@ -218,8 +218,8 @@ chrome.storage.onChanged.addListener((changes) => {
 			}
 			if (gState !== states.manual && gCachedSelector) observeDocument()
 		}
-		if ('monitor-changes' in changes) {
-			if (changes['monitor-changes'].newValue === true) {
+		if ('monitor' in changes) {
+			if (changes.monitor.newValue === true) {
 				gState = states.observing
 				selectAndhighlight(false)
 			} else {
@@ -258,7 +258,7 @@ function startUp() {
 		gCachedSelector = items.selector
 		gCachedOutline = items.outline
 		gLandmarks = items.landmarks
-		gState = items['monitor-changes'] ? states.observing : states.manual
+		gState = items.monitor ? states.observing : states.manual
 		checkOutlineValidity()
 		selectAndhighlight(true)
 	})

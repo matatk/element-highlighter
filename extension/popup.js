@@ -3,7 +3,7 @@
 const settings = {
 	'selector': null,
 	'outline': '4px solid orange',
-	'monitor-changes': true,
+	'monitor': true,
 	'landmarks': false
 }
 
