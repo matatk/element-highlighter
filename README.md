@@ -3,9 +3,11 @@ Highlight Selector
 
 This simple browser extension highlights all elements on the page that match a selector (using a CSS outline of your choice), and creates a landmark region for each match (so that people who can't see the screen and are using assistive technologies can find the matches, and so that people using the keyboard and [Landmarks extension](https://matatk.agrip.org.uk/landmarks/) to navigate can easily move between them).
 
-This will run on all pages automatically (on Chrome you will need to refresh any pages that are open when you first load the extension, though).
+This will run on all pages automatically (on Chromium-based browsers you will need to refresh any pages that are open when you first load the extension, though).
 
-Please note that, whilst a query exists in the "selector" input box, the page will be re-queried on any DOM change (including attribute value changes). This can really affect performance. Emptying the selector input box (and pressing Enter) will stop the scanning from happening.
+By default, whilst a query exists in the "selector" input box, the page will be re-queried on any DOM change (including attribute value changes). However, if there are subsequent mutations to the DOM within a two-second window, they will be ignored, and the page will be re-queried at the end of that window. This is intended to mitigate most performance concerns during active use. Some pages (often web apps or games) change a lot, though, so a checkbox is provided to turn off change monitoring entirely.
+
+It is recommended to leave the selector box blank, or to engage manual mode, when you're not using the extension, to avoid wasting CPU time and energy.
 
 Running the extension
 ---------------------
@@ -28,8 +30,13 @@ Your chosen selector and outline styles will be saved across browser restarts.
 
 Press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> on Mac) to re-run the current selector at any time (even if the pop-up is closed).
 
-### Quick keyboard workflow tips
+Keyboard workflow tips
+----------------------
 
-Pressing <kbd>Return</kbd>/<kbd>Enter</kbd> will run the selector, or update the outline style, if the values have changed. Making the selector blank will disable highlighting. If you enter a blank outline style, the default style will come back.
+* Pressing <kbd>Return</kbd>/<kbd>Enter</kbd> or simply moving focus away from an input box will run the selector, or update the outline style, if the values have changed.
 
-The pop-up stays open after you've entered new values, so you can keep re-running selectors. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/outline, you can just press <kbd>Escape</kbd> and the pop-up will close, with the new values reflected.
+* If you're running in manual mode (where the page is not monitored for changes), pressing <kbd>Return</kbd>/<kbd>Enter</kbd> will re-run the selector, even if it's not changed.
+
+* Making the selector blank will disable highlighting. If you enter a blank outline style, the default style will come back.
+
+* The pop-up stays open after you've entered/updated values, so you can keep refining your selector. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/outline, you can just press <kbd>Escape</kbd> and the pop-up will close, with the new values reflected.

@@ -1,0 +1,26 @@
+body {
+	font-family: Georgia, serif;
+	font-size: 1.2rem;
+	line-height: 1.5;
+	margin: 0 auto;
+	padding: 1em 0;
+	width: 54rem;
+	max-width: calc(100vw - 2em);
+}
+
+h1, h2 { font-family: sans-serif; }
+
+:root {
+  color: #333;
+  background-color: white;
+}
+
+@media screen and (prefers-color-scheme: dark) {
+  :root {
+    color: #ddd;
+    background-color: #222;
+  }
+
+  a { color: #8f8fff; }
+  a:visited { color: #ff8fff; }
+}
