@@ -1,11 +1,13 @@
 Highlight Selector
 ==================
 
-This simple browser extension highlights all elements on the page that match a selector (using a CSS outline of your choice), and creates a landmark region for each match (so that people who can't see the screen and are using assistive technologies can find the matches, and so that people using the keyboard and [Landmarks extension](https://matatk.agrip.org.uk/landmarks/) to navigate can easily move between them).
+**Browser extension that highlights elements on the page that match a selector.**
 
-This will run on all pages automatically (on Chromium-based browsers you will need to refresh any pages that are open when you first load the extension, though).
+This simple browser extension highlights all elements on the page that match a selector, using a CSS outline of your choice. It can also create a landmark region around each match, so that if you can't see the screen, prefer using the keyboard, or are otherwise using assistive technologies (such as a screen reader, or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/)), you can easily find the matching elements.
 
-By default, whilst a query exists in the "selector" input box, the page will be re-queried on any DOM change (including attribute value changes). However, if there are subsequent mutations to the DOM within a two-second window, they will be ignored, and the page will be re-queried at the end of that window. This is intended to mitigate most performance concerns during active use. Some pages (often web apps or games) change a lot, though, so a checkbox is provided to turn off change monitoring entirely.
+Your selector will run on all pages automatically. On Chromium-based browsers you will need to refresh any pages that are open when you first load the extension, though.
+
+By default, whilst a query exists in the "selector" input box, the page will be re-queried on any DOM change (this uses a [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) behind the scenes). However, if there are subsequent mutations to the DOM within a two-second window, they will be ignored, and the page will be re-queried at the end of a further two-second window. This is intended to mitigate most performance concerns during active use. Some pages (often web apps or games) change a lot, though, so a checkbox is provided to turn off change monitoring entirely.
 
 It is recommended to leave the selector box blank, or to engage manual mode, when you're not using the extension, to avoid wasting CPU time and energy.
 
@@ -28,15 +30,29 @@ Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>
 
 Your chosen selector and outline styles will be saved across browser restarts.
 
-Press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> on Mac) to re-run the current selector at any time (even if the pop-up is closed).
+In the pop-up, you can also toggle the two checkboxes to control whether the page is automatically monitored, and whether landmark regions are placed around each match. These settings, too, will be saved.
+
+**Note:** Landmark regions are only discoverable via assistive technologies, such as screen readers or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/).
 
 Keyboard workflow tips
 ----------------------
 
 * Pressing <kbd>Return</kbd>/<kbd>Enter</kbd> or simply moving focus away from an input box will run the selector, or update the outline style, if the values have changed.
 
-* If you're running in manual mode (where the page is not monitored for changes), pressing <kbd>Return</kbd>/<kbd>Enter</kbd> will re-run the selector, even if it's not changed.
+* In addition, if you're running in manual mode (where the page is not monitored for changes), pressing <kbd>Return</kbd>/<kbd>Enter</kbd> will re-run the selector even if it hasn't changed.
 
 * Making the selector blank will disable highlighting. If you enter a blank outline style, the default style will come back.
 
-* The pop-up stays open after you've entered/updated values, so you can keep refining your selector. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/outline, you can just press <kbd>Escape</kbd> and the pop-up will close, with the new values reflected.
+* The pop-up stays open after you've entered/updated values, so you can keep refining your selector. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/outline, you can just press <kbd>Escape</kbd> and the pop-up will close, and the new value will be used.
+
+Limitations
+-----------
+
+It's possible that, depending on the page's styling, the use of landmark regions will alter the visual presentation of the page.
+
+Acknowledgements
+----------------
+
+Jeremiah Rogers for the idea of using landmarks to demarcate matches. We had talked about more amusing but unfortunately unimplementable (due to the need to track assistive technologies' virtual cursors) ideas, such as playing sounds when entering/leaving matching elements, but landmarks are more robust, and less invasive.
+
+MDN and StackOverflow for help as ever.

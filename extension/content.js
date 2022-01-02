@@ -269,6 +269,6 @@ document.addEventListener('visibilitychange', reflectVisibility)
 // Firefox auto-injects content scripts
 if (!document.hidden) {
 	gState = states.startup
-	sendInfo(false, false)  // popup could be open with altered input values
+	sendInfo(false, false)  // pop-up could be open with altered input values
 	setTimeout(startUp, STARTUP_GRACE_TIME)
 }
