@@ -29,7 +29,6 @@ let gMatchCounter = 0
 
 let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
-let gSentIgnoringMutationsMessage = false
 
 let gState = null
 
@@ -39,24 +38,20 @@ const gObserver = new MutationObserver(() => {
 	chrome.runtime.sendMessage({ name: 'mutations', data: ++gMutationCounter })
 	const now = Date.now()
 	if (now > gLastMutationTime + MUTATION_IGNORE_TIME) {
-		runDueToMutation()
+		runDueToMutation(now)
 		gLastMutationTime = now
-	} else {
-		if (gScheduledRun) clearTimeout(gScheduledRun)
-		gScheduledRun = setTimeout(runDueToMutation, MUTATION_IGNORE_TIME, now)
-		if (!gSentIgnoringMutationsMessage) {
-			gState = states.ignoring
-			chrome.runtime.sendMessage({ name: 'state', data: gState })
-			gSentIgnoringMutationsMessage = true
-		}
+	} else if (gScheduledRun === null) {
+		gScheduledRun = setTimeout(
+			runDueToMutation, MUTATION_IGNORE_TIME, now + MUTATION_IGNORE_TIME)
+		gState = states.ignoring
+		chrome.runtime.sendMessage({ name: 'state', data: gState })
 	}
 })
 
-function runDueToMutation(now) {
+function runDueToMutation(currentTime) {
 	selectAndhighlight()
 	gScheduledRun = null
-	gSentIgnoringMutationsMessage = false
-	gLastMutationTime = now
+	gLastMutationTime = currentTime
 }
 
 function observeDocument() {
@@ -81,7 +76,6 @@ function stopObservingAndUnScheduleRun() {
 		clearTimeout(gScheduledRun)
 		gScheduledRun = null
 	}
-	gSentIgnoringMutationsMessage = false
 }
 
 // Managing highlights (outlines and landmarks)
