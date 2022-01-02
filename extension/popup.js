@@ -37,13 +37,14 @@ for (const setting in settings) {
 	}
 }
 
-// FIXME: DRY
+function sendToActiveTab(message) {
+	chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+		chrome.tabs.sendMessage(tabs[0].id, message)
+	})
+}
+
 document.getElementById('selector').addEventListener('keydown', event => {
-	if (event.code === 'Enter') {
-		chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-			chrome.tabs.sendMessage(tabs[0].id, { name: 'run' })
-		})
-	}
+	if (event.code === 'Enter') sendToActiveTab({ name: 'run' })
 })
 
 chrome.runtime.onMessage.addListener(message => {
@@ -68,11 +69,9 @@ chrome.runtime.onMessage.addListener(message => {
 	}
 })
 
-chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-	chrome.tabs.sendMessage(tabs[0].id, { name: 'get-info' })
-})
-
 document.getElementById('help').addEventListener('click', () => {
 	chrome.tabs.create({ url: chrome.runtime.getURL('README.html') })
 	window.close()
 })
+
+sendToActiveTab({ name: 'get-info' })
