@@ -37,6 +37,15 @@ for (const setting in settings) {
 	}
 }
 
+// FIXME: DRY
+document.getElementById('selector').addEventListener('keydown', event => {
+	if (event.code === 'Enter') {
+		chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
+			chrome.tabs.sendMessage(tabs[0].id, { name: 'run' })
+		})
+	}
+})
+
 chrome.runtime.onMessage.addListener(message => {
 	switch (message.name) {
 		case 'mutations':

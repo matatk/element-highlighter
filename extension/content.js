@@ -224,8 +224,11 @@ chrome.storage.onChanged.addListener((changes) => {
 })
 
 chrome.runtime.onMessage.addListener(message => {
-	// The popup only sends messages to the active window tab
-	if (message.name === 'get-info') sendInfo(true)
+	if (message.name === 'get-info') {
+		sendInfo(true)
+	} else if (message.name === 'run' && gState === states.manual) {
+		selectAndhighlight()
+	}
 })
 
 function reflectVisibility() {
