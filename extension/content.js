@@ -3,7 +3,8 @@
 const settings = {
 	'selector': null,
 	'outline': '4px solid orange',
-	'monitor-changes': true
+	'monitor-changes': true,
+	'visual-only': false
 }
 
 const states = Object.freeze({
@@ -15,7 +16,7 @@ const states = Object.freeze({
 })
 
 const LANDMARK_MARKER_ATTR = 'data-highlight-selector-landmark'
-const STARTUP_GRACE_TIME = 4e3
+const STARTUP_GRACE_TIME = 2e3
 const MUTATION_IGNORE_TIME = 2e3
 const gHighlighted = new Map()  // element : { outline[str], landmark[element] }
 
@@ -31,7 +32,7 @@ let gMatchCounter = 0
 
 let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
-
+let gVisualOnly = null
 let gState = null
 
 // Mutation observation
@@ -51,7 +52,7 @@ const gObserver = new MutationObserver(() => {
 })
 
 function runDueToMutation(currentTime) {
-	selectAndhighlight()
+	selectAndhighlight(true)
 	gScheduledRun = null
 	gLastMutationTime = currentTime
 }
@@ -106,10 +107,12 @@ function removeHighlightsExceptFor(matches = new Set()) {
 			element.remove()
 		}
 
-		if (document.body.contains(landmark)) {
-			landmark.replaceWith(...landmark.childNodes)
-		} else {
-			landmark.remove()
+		if (landmark) {
+			if (document.body.contains(landmark)) {
+				landmark.replaceWith(...landmark.childNodes)
+			} else {
+				landmark.remove()
+			}
 		}
 
 		gHighlighted.delete(element)
@@ -123,15 +126,17 @@ function highlight(elements) {
 		const outline = element.style.outline
 		if (gValidOutline) element.style.outline = gCachedOutline
 
-		const landmark = makeWrappingLandmark()
-		element.parentElement.insertBefore(landmark, element)
-		landmark.appendChild(element)
+		const landmark = gVisualOnly ? null : makeWrappingLandmark()
+		if (!gVisualOnly) {
+			element.parentElement.insertBefore(landmark, element)
+			landmark.appendChild(element)
+		}
 
 		gHighlighted.set(element, { outline, landmark })
 	}
 }
 
-function selectAndhighlight() {
+function selectAndhighlight(incrementRunCounter, removeAllHighlights = false) {
 	gValidSelector = true
 	gMatchCounter = 0
 	if (gState !== states.manual) gState = states.notObserving
@@ -148,13 +153,17 @@ function selectAndhighlight() {
 			foundElements = new Set(Array.from(nodeList).filter(
 				element => !element.hasAttribute(LANDMARK_MARKER_ATTR)))
 			gMatchCounter = foundElements.size
-			gRunCounter++
+			if (incrementRunCounter) gRunCounter++
 		}
 	}
 
 	if (!gCachedSelector || !gValidSelector || foundElements) {
 		stopObserving()
-		removeHighlightsExceptFor(foundElements)
+		if (removeAllHighlights) {
+			removeHighlightsExceptFor()  // when changing visual-only seting
+		} else {
+			removeHighlightsExceptFor(foundElements)
+		}
 	}
 
 	if (gMatchCounter > 0) {
@@ -193,9 +202,10 @@ function sendInfo(includeSelectorValidity, includeOutlineValidity) {
 
 chrome.storage.onChanged.addListener((changes) => {
 	if (!document.hidden) {
+		// TODO: use else-ifs?
 		if ('selector' in changes) {
 			gCachedSelector = changes.selector.newValue
-			selectAndhighlight()
+			selectAndhighlight(false)
 		}
 		if ('outline' in changes) {
 			gCachedOutline = changes.outline.newValue
@@ -211,12 +221,16 @@ chrome.storage.onChanged.addListener((changes) => {
 		if ('monitor-changes' in changes) {
 			if (changes['monitor-changes'].newValue === true) {
 				gState = states.observing
-				selectAndhighlight()
+				selectAndhighlight(false)
 			} else {
 				stopObservingAndUnScheduleRun()
 				gState = states.manual
 				chrome.runtime.sendMessage({ name: 'state', data: gState })
 			}
+		}
+		if ('visual-only' in changes) {
+			gVisualOnly = changes['visual-only'].newValue
+			selectAndhighlight(false, true)
 		}
 	}
 })
@@ -225,7 +239,7 @@ chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'get-info') {
 		sendInfo(true, true)
 	} else if (message.name === 'run' && gState === states.manual) {
-		selectAndhighlight()
+		selectAndhighlight(true)
 	}
 })
 
@@ -243,9 +257,10 @@ function startUp() {
 	chrome.storage.sync.get(settings, items => {
 		gCachedSelector = items.selector
 		gCachedOutline = items.outline
+		gVisualOnly = items['visual-only']
 		gState = items['monitor-changes'] ? states.observing : states.manual
 		checkOutlineValidity()
-		selectAndhighlight()
+		selectAndhighlight(true)
 	})
 }
 

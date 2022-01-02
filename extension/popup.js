@@ -3,7 +3,8 @@
 const settings = {
 	'selector': null,
 	'outline': '4px solid orange',
-	'monitor-changes': true
+	'monitor-changes': true,
+	'visual-only': false
 }
 
 chrome.storage.sync.get(settings, items => {
