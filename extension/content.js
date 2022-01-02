@@ -2,14 +2,15 @@
 // NOTE: Also in popup.js
 const settings = {
 	'selector': null,
-	'outline': '4px solid yellow',
+	'outline': '4px solid orange',
 	'monitor-changes': true
 }
 
 const states = Object.freeze({
-	'manual': 'Manual',
-	'observing': 'Monitoring',
-	'ignoring': 'Ignoring'
+	ignoring: 'Ignoring changes',
+	manual: 'Manual activation',
+	notObserving: 'Not monitoring',
+	observing: 'Monitoring'
 })
 
 const LANDMARK_MARKER_ATTR = 'data-highlight-selector-landmark'
@@ -136,7 +137,8 @@ function highlight(elements) {
 
 function selectAndhighlight() {
 	gValidSelector = true
-	gMatchCounter = -1
+	gMatchCounter = 0
+	if (gState !== states.manual) gState = states.notObserving
 	let foundElements  // eslint-disable-line init-declarations
 
 	if (gCachedSelector) {
@@ -161,7 +163,7 @@ function selectAndhighlight() {
 
 	if (gMatchCounter > 0) {
 		highlight(foundElements)
-		observeDocument()
+		if (gState !== states.manual) observeDocument()
 	}
 
 	sendInfo()
@@ -206,12 +208,12 @@ chrome.storage.onChanged.addListener((changes) => {
 					element.style.outline = gCachedOutline
 				}
 			}
-			if (gCachedSelector) observeDocument()
+			if (gState !== states.manual && gCachedSelector) observeDocument()
 		}
 		if ('monitor-changes' in changes) {
 			if (changes['monitor-changes'].newValue === true) {
 				gState = states.observing
-				observeDocument()
+				selectAndhighlight()
 			} else {
 				stopObservingAndUnScheduleRun()
 				gState = states.manual

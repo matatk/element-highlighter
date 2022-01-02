@@ -2,7 +2,7 @@
 // NOTE: Also in content.js
 const settings = {
 	'selector': null,
-	'outline': '4px solid yellow',
+	'outline': '4px solid orange',
 	'monitor-changes': true
 }
 
@@ -24,6 +24,7 @@ for (const setting in settings) {
 	if (setting === 'outline') {
 		changeHandler(control, event => {
 			if (event.target.value === '') event.target.value = settings.outline
+			chrome.storage.sync.set({ [setting]: event.target.value })
 		})
 	} else if (typeof settings[setting] === 'boolean') {
 		changeHandler(control, event => {
@@ -41,8 +42,7 @@ chrome.runtime.onMessage.addListener(message => {
 		case 'mutations':
 		case 'runs':
 		case 'matches':
-			document.getElementById(message.name).innerText =
-				message.data >= 0 ? message.data : '\u2014'
+			document.getElementById(message.name).innerText = message.data
 			break
 		case 'validity': {
 			const input = message.of

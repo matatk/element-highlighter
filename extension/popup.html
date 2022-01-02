@@ -12,9 +12,7 @@ label {
 	margin-bottom: 0.5em;
 }
 
-* + label, * + button {
-	margin-top: 1em;
-}
+* + label, * + button { margin-top: 1em; }
 
 .input-and-validity, .tick {
 	display: flex;
@@ -31,6 +29,9 @@ button {
 
 p:last-child { margin-bottom: 0; }
 
+#description { margin-top: 0.25em; }
+#description p { margin: 0.25em; }
+
 summary { font-weight: bold; }
 		</style>
 	</head>
@@ -42,10 +43,10 @@ summary { font-weight: bold; }
 			<span hidden id="selector-invalid">&#10060;</span>
 		</div>
 		<div id="description">
-			<p aria-live="polite" aria-atomic="true"><span id="matches">&mdash;</span> matches</p>
-			<p id="state">&mdash;</p>
-			<p><span id="runs">&mdash;</span> selector runs</p>
-			<p><span id="mutations">&mdash;</span> observed mutations</p>
+			<p aria-live="polite" aria-atomic="true"><span id="matches"></span> matches</p>
+			<p><span id="runs"></span> selector runs</p>
+			<p><span id="mutations"></span> changes</p>
+			<p id="state"></p>
 		</div>
 
 		<div class="tick">
