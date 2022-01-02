@@ -4,7 +4,7 @@ const settings = {
 	'selector': null,
 	'outline': '4px solid orange',
 	'monitor-changes': true,
-	'visual-only': false
+	'landmarks': false
 }
 
 const states = Object.freeze({
@@ -32,7 +32,7 @@ let gMatchCounter = 0
 
 let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
-let gVisualOnly = null
+let gLandmarks = null
 let gState = null
 
 // Mutation observation
@@ -126,8 +126,8 @@ function highlight(elements) {
 		const outline = element.style.outline
 		if (gValidOutline) element.style.outline = gCachedOutline
 
-		const landmark = gVisualOnly ? null : makeWrappingLandmark()
-		if (!gVisualOnly) {
+		const landmark = gLandmarks ? makeWrappingLandmark() : null
+		if (gLandmarks) {
 			element.parentElement.insertBefore(landmark, element)
 			landmark.appendChild(element)
 		}
@@ -160,7 +160,7 @@ function selectAndhighlight(incrementRunCounter, removeAllHighlights = false) {
 	if (!gCachedSelector || !gValidSelector || foundElements) {
 		stopObserving()
 		if (removeAllHighlights) {
-			removeHighlightsExceptFor()  // when changing visual-only seting
+			removeHighlightsExceptFor()  // when changing landmarks seting
 		} else {
 			removeHighlightsExceptFor(foundElements)
 		}
@@ -228,8 +228,8 @@ chrome.storage.onChanged.addListener((changes) => {
 				chrome.runtime.sendMessage({ name: 'state', data: gState })
 			}
 		}
-		if ('visual-only' in changes) {
-			gVisualOnly = changes['visual-only'].newValue
+		if ('landmarks' in changes) {
+			gLandmarks = changes.landmarks.newValue
 			selectAndhighlight(false, true)
 		}
 	}
@@ -257,7 +257,7 @@ function startUp() {
 	chrome.storage.sync.get(settings, items => {
 		gCachedSelector = items.selector
 		gCachedOutline = items.outline
-		gVisualOnly = items['visual-only']
+		gLandmarks = items.landmarks
 		gState = items['monitor-changes'] ? states.observing : states.manual
 		checkOutlineValidity()
 		selectAndhighlight(true)

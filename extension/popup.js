@@ -4,7 +4,7 @@ const settings = {
 	'selector': null,
 	'outline': '4px solid orange',
 	'monitor-changes': true,
-	'visual-only': false
+	'landmarks': false
 }
 
 chrome.storage.sync.get(settings, items => {
