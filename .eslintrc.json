@@ -237,13 +237,6 @@
     "semi-spacing": "error",
     "semi-style": "error",
     "sort-imports": "error",
-    "sort-keys": [
-      "error",
-      "asc",
-      {
-        "minKeys": 4
-      }
-    ],
     "sort-vars": "error",
     "space-before-blocks": "error",
     "space-before-function-paren": "off",

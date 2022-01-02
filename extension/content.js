@@ -7,13 +7,15 @@ const settings = {
 }
 
 const states = Object.freeze({
-	ignoring: 'Ignoring changes',
-	manual: 'Manual activation',
+	startup: 'Paused on page load',
+	observing: 'Monitoring',
 	notObserving: 'Not monitoring',
-	observing: 'Monitoring'
+	ignoring: 'Ignoring changes',
+	manual: 'Manual activation'
 })
 
 const LANDMARK_MARKER_ATTR = 'data-highlight-selector-landmark'
+const STARTUP_GRACE_TIME = 4e3
 const MUTATION_IGNORE_TIME = 2e3
 const gHighlighted = new Map()  // element : { outline[str], landmark[element] }
 
@@ -160,7 +162,7 @@ function selectAndhighlight() {
 		if (gState !== states.manual) observeDocument()
 	}
 
-	sendInfo()
+	sendInfo(true, false)
 }
 
 function checkOutlineValidity() {
@@ -172,14 +174,16 @@ function checkOutlineValidity() {
 		{ name: 'validity', of: 'outline', data: gValidOutline })
 }
 
-function sendInfo(includeOutline = false) {
+function sendInfo(includeSelectorValidity, includeOutlineValidity) {
 	chrome.runtime.sendMessage({ name: 'mutations', data: gMutationCounter })
 	chrome.runtime.sendMessage({ name: 'runs', data: gRunCounter })
 	chrome.runtime.sendMessage({ name: 'matches', data: gMatchCounter })
 	chrome.runtime.sendMessage({ name: 'state', data: gState })
-	chrome.runtime.sendMessage(
-		{ name: 'validity', of: 'selector', data: gValidSelector })
-	if (includeOutline) {
+	if (includeSelectorValidity) {
+		chrome.runtime.sendMessage(
+			{ name: 'validity', of: 'selector', data: gValidSelector })
+	}
+	if (includeOutlineValidity) {
 		chrome.runtime.sendMessage(
 			{ name: 'validity', of: 'outline', data: gValidOutline })
 	}
@@ -219,7 +223,7 @@ chrome.storage.onChanged.addListener((changes) => {
 
 chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'get-info') {
-		sendInfo(true)
+		sendInfo(true, true)
 	} else if (message.name === 'run' && gState === states.manual) {
 		selectAndhighlight()
 	}
@@ -248,4 +252,8 @@ function startUp() {
 document.addEventListener('visibilitychange', reflectVisibility)
 
 // Firefox auto-injects content scripts
-if (!document.hidden) startUp()
+if (!document.hidden) {
+	gState = states.startup
+	sendInfo(false, false)  // popup could be open with altered input values
+	setTimeout(startUp, STARTUP_GRACE_TIME)
+}
