@@ -52,7 +52,7 @@ const gObserver = new MutationObserver(() => {
 })
 
 function runDueToMutation(currentTime) {
-	selectAndhighlight(true)
+	selectAndhighlight(true, false)
 	gScheduledRun = null
 	gLastMutationTime = currentTime
 }
@@ -136,7 +136,7 @@ function highlight(elements) {
 	}
 }
 
-function selectAndhighlight(incrementRunCounter, removeAllHighlights = false) {
+function selectAndhighlight(incrementRunCounter, removeAllHighlights) {
 	gValidSelector = true
 	gMatchCounter = 0
 	if (gState !== states.manual) gState = states.notObserving
@@ -205,7 +205,7 @@ chrome.storage.onChanged.addListener((changes) => {
 		// TODO: use else-ifs?
 		if ('selector' in changes) {
 			gCachedSelector = changes.selector.newValue
-			selectAndhighlight(false)
+			selectAndhighlight(false, false)
 		}
 		if ('outline' in changes) {
 			gCachedOutline = changes.outline.newValue
@@ -221,7 +221,7 @@ chrome.storage.onChanged.addListener((changes) => {
 		if ('monitor' in changes) {
 			if (changes.monitor.newValue === true) {
 				gState = states.observing
-				selectAndhighlight(false)
+				selectAndhighlight(false, false)
 			} else {
 				stopObservingAndUnScheduleRun()
 				gState = states.manual
@@ -239,7 +239,7 @@ chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'get-info') {
 		sendInfo(true, true)
 	} else if (message.name === 'run' && gState === states.manual) {
-		selectAndhighlight(true)
+		selectAndhighlight(true, false)
 	}
 })
 
@@ -260,7 +260,7 @@ function startUp() {
 		gLandmarks = items.landmarks
 		gState = items.monitor ? states.observing : states.manual
 		checkOutlineValidity()
-		selectAndhighlight(true)
+		selectAndhighlight(true, false)
 	})
 }
 
