@@ -32,6 +32,7 @@
   "manifest_version": 2,
   "name": "Highlight Selector",
   "permissions": [
+    "activeTab",
     "storage"
   ],
   "short_name": "Highlight Selector",

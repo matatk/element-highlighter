@@ -7,6 +7,11 @@ const settings = {
 	'landmarks': false
 }
 
+const changeHandler = (input, func) => input.addEventListener('change', func)
+
+const withActiveTab = func => chrome.tabs.query(
+	{ active: true, currentWindow: true }, tabs => func(tabs[0]))
+
 chrome.storage.sync.get(settings, items => {
 	for (const setting in settings) {
 		const control = document.getElementById(setting)
@@ -17,8 +22,6 @@ chrome.storage.sync.get(settings, items => {
 		}
 	}
 })
-
-const changeHandler = (input, func) => input.addEventListener('change', func)
 
 for (const setting in settings) {
 	const control = document.getElementById(setting)
@@ -38,14 +41,10 @@ for (const setting in settings) {
 	}
 }
 
-function sendToActiveTab(message) {
-	chrome.tabs.query({ active: true, currentWindow: true }, tabs => {
-		chrome.tabs.sendMessage(tabs[0].id, message)
-	})
-}
-
 document.getElementById('selector').addEventListener('keydown', event => {
-	if (event.code === 'Enter') sendToActiveTab({ name: 'run' })
+	if (event.code === 'Enter') {
+		withActiveTab(tab => chrome.tabs.sendMessage(tab.id, { name: 'run' }))
+	}
 })
 
 chrome.runtime.onMessage.addListener(message => {
@@ -75,4 +74,12 @@ document.getElementById('help').addEventListener('click', () => {
 	window.close()
 })
 
-sendToActiveTab({ name: 'get-info' })
+withActiveTab(tab => {
+	if (tab.url.match(/^https?:\/\//)) {
+		chrome.runtime.sendMessage(tab.id, { name: 'get-info' })
+	} else {
+		for (const control of document.getElementsByTagName('INPUT')) {
+			control.disabled = true
+		}
+	}
+})
