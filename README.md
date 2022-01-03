@@ -50,6 +50,8 @@ Limitations
 
 It's possible that, depending on the page's styling, the use of landmark regions will alter the visual presentation of the page.
 
+The extension is forbidden from running on some pages. If you visit a built-in browser page (where the URL doesn't start with `https?://`) the pop-up's input controls will be disabled. However, the extension will also not run on the browser's extension store pages, and that is not detected by the pop-up.
+
 Acknowledgements
 ----------------
 
