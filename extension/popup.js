@@ -76,7 +76,7 @@ document.getElementById('help').addEventListener('click', () => {
 
 withActiveTab(tab => {
 	if (tab.url.match(/^https?:\/\//)) {
-		chrome.runtime.sendMessage(tab.id, { name: 'get-info' })
+		chrome.tabs.sendMessage(tab.id, { name: 'get-info' })
 	} else {
 		for (const control of document.getElementsByTagName('INPUT')) {
 			control.disabled = true
