@@ -231,7 +231,6 @@
     "radix": "error",
     "require-atomic-updates": "error",
     "require-await": "error",
-    "require-unicode-regexp": "error",
     "rest-spread-spacing": "error",
     "semi": "off",
     "semi-spacing": "error",
