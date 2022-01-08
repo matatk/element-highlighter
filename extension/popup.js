@@ -75,7 +75,7 @@ document.getElementById('help').addEventListener('click', () => {
 })
 
 withActiveTab(tab => {
-	if (tab.url.match(/^https?:\/\//)) {
+	if (tab.url.match(/^(?:https?|file):\/\//)) {
 		chrome.tabs.sendMessage(tab.id, { name: 'get-info' })
 	} else {
 		for (const control of document.getElementsByTagName('INPUT')) {
