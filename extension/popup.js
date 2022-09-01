@@ -70,7 +70,7 @@ chrome.runtime.onMessage.addListener(message => {
 })
 
 document.getElementById('help').addEventListener('click', () => {
-	chrome.tabs.create({ url: chrome.runtime.getURL('README.html') })
+	chrome.tabs.create({ url: 'https://github.com/matatk/highlight-selector/blob/main/README.md#highlight-selector' })
 	window.close()
 })
 
