@@ -9,6 +9,6 @@
     "start:firefox": "npm run start:_core -- --target firefox-desktop"
   },
   "devDependencies": {
-    "eslint": "^8.4.0"
+    "eslint": "^8.23.0"
   }
 }
