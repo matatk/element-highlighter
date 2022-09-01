@@ -1,7 +1,7 @@
 Highlight Selector
 ==================
 
-**Browser extension that highlights elements on the page that match a selector.**
+**Browser extension that highlights (and optionally landmarks) elements on the page that match a selector.**
 
 This simple browser extension highlights all elements on the page that match a selector, using a CSS outline of your choice. It can also create a landmark region around each match, so that if you can't see the screen, prefer using the keyboard, or are otherwise using assistive technologies (such as a screen reader, or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/)), you can easily find the matching elements.
 
@@ -11,17 +11,22 @@ By default, whilst a query exists in the "selector" input box, the page will be 
 
 It is recommended to leave the selector box blank, or to engage manual mode, when you're not using the extension, to avoid wasting CPU time and energy.
 
-Running the extension
----------------------
+Installing the extension
+------------------------
 
-If you have [`web-ext`](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/) installed you can use that to start it. You can also sideload it manually in various browsers; here are the instructions for some popular ones:
+First you need to either check out, or [download the code](https://github.com/matatk/highlight-selector/archive/refs/heads/main.zip). You can then sideload it manually in various browsers—point your browser at the `extension/` directory. Here are the instructions for some popular ones:
 
 * **Firefox:** [Temporary installation in Firefox](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/)
-* **Edge:** [Sideload an extension](https://docs.microsoft.com/en-us/microsoft-edge/extensions-chromium/getting-started/extension-sideloading)
-* **Chrome:** [Instructions in the "Create the manifest" section of the "Getting started" docs](https://developer.chrome.com/extensions/getstarted#manifest)
-* **Opera:** [Testing and Debugging](https://dev.opera.com/extensions/testing/)
 
-**Note:** In order to make it work on Firefox, it was necessary to specify an ID for the extension. This makes other browsers complain about non-standard manifest keys, but it doesn't affect functionality.
+* **Edge:** [Sideload an extension](https://docs.microsoft.com/en-us/microsoft-edge/extensions-chromium/getting-started/extension-sideloading)
+
+* **Chrome:** [Load an unpacked extension](https://developer.chrome.com/docs/extensions/mv3/getstarted/#unpacked)
+
+**Notes:**
+
+* For Firefox, it was necessary to specify an ID for the extension. This makes other browsers complain about non-standard manifest keys, but it doesn't affect functionality.
+
+* If you have [`web-ext`](https://extensionworkshop.com/documentation/develop/getting-started-with-web-ext/) installed you can use that to start it. Running `npm run start:firefox` or `npm run start:chrome` will open a blank test profile in either browser, with the extension installed, for quick testing.
 
 Using the extension
 -------------------
@@ -55,6 +60,6 @@ The extension is forbidden from running on some pages. If you visit a built-in b
 Acknowledgements
 ----------------
 
-Jeremiah Rogers for the idea of using landmarks to demarcate matches. We had talked about more amusing but unfortunately unimplementable (due to the need to track assistive technologies' virtual cursors) ideas, such as playing sounds when entering/leaving matching elements, but landmarks are more robust, and less invasive.
+[@TPGJRogers](https://github.com/TPGJRogers) for the idea of using landmarks to demarcate matches. We had talked about more amusing ideas, such as playing sounds when entering/leaving matching elements, but that would've required code running within the user's assistive technology.
 
-MDN and StackOverflow for help as ever.
+MDN and StackOverflow for help, as ever.
