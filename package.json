@@ -3,7 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "test": "eslint ."
+    "test": "eslint .",
+    "start:_core": "web-ext run --no-config-discovery --source-dir extension --start-url https://github.com/matatk/highlight-selector",
+    "start:chrome": "npm run start:_core -- --target chromium",
+    "start:firefox": "npm run start:_core -- --target firefox-desktop"
   },
   "devDependencies": {
     "eslint": "^8.4.0"
