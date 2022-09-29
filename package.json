@@ -5,7 +5,7 @@
   "scripts": {
     "start:_core": "web-ext run --no-config-discovery --source-dir extension --start-url https://github.com/matatk/highlight-selector",
     "start:chrome": "npm run start:_core -- --target chromium",
-    "start:firefox": "npm run start:_core -- --target firefox-desktop",
+    "start:firefox": "npm run start:_core -- --firefox-preview",
     "test": "eslint ."
   },
   "devDependencies": {
