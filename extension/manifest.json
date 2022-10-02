@@ -27,8 +27,8 @@
       ]
     }
   ],
-  "description": "FIXME",
-  "homepage_url": "http://matatk.agrip.org.uk/highlight-selector/",
+  "description": "Highlight (and optionally landmark) elements on the page that match a selector",
+  "homepage_url": "http://github.com/matatk/highlight-selector",
   "manifest_version": 2,
   "name": "Highlight Selector",
   "permissions": [
