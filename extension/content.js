@@ -1,7 +1,7 @@
 'use strict'
 // NOTE: Also in popup.js
 const settings = {
-	'selector': null,
+	'locator': null,
 	'outline': '4px solid orange',
 	'monitor': true,
 	'landmarks': false
@@ -15,14 +15,14 @@ const states = Object.freeze({
 	manual: 'Manual activation'
 })
 
-const LANDMARK_MARKER_ATTR = 'data-highlight-selector-landmark'
+const LANDMARK_MARKER_ATTR = 'data-highlight-elements-landmark'
 const STARTUP_GRACE_TIME = 2e3
 const MUTATION_IGNORE_TIME = 2e3
-const gHighlighted = new Map()  // element : { outline[str], landmark[element] }
+const gHighlighted = new Map()  // elmnt : { outline: str, landmark: elmnt }
 
-let gCachedSelector = null
+let gCachedLocator = null
 let gCachedOutline = null
-let gValidSelector = true
+let gValidLocator = true
 let gValidOutline = true
 
 let gHighlightCounter = 0
@@ -137,19 +137,23 @@ function highlight(elements) {
 }
 
 function selectAndhighlight(incrementRunCounter, removeAllHighlights) {
-	gValidSelector = true
+	gValidLocator = true
 	gMatchCounter = 0
 	if (gState !== states.manual) gState = states.notObserving
-	let foundElements  // eslint-disable-line init-declarations
+	let foundElements = null
 
-	if (gCachedSelector) {
+	if (gCachedLocator) {
 		let nodeList = null
-		try {
-			nodeList = document.body.querySelectorAll(gCachedSelector)
-		} catch {
-			gValidSelector = false
+		if (gCachedLocator.startsWith('/')) {
+			nodeList = evaluatePathAndSetValidity()
+		} else {
+			try {
+				nodeList = document.body.querySelectorAll(gCachedLocator)
+			} catch {
+				gValidLocator = false
+			}
 		}
-		if (gValidSelector) {
+		if (gValidLocator) {
 			foundElements = new Set(Array.from(nodeList).filter(
 				element => !element.hasAttribute(LANDMARK_MARKER_ATTR)))
 			gMatchCounter = foundElements.size
@@ -157,7 +161,7 @@ function selectAndhighlight(incrementRunCounter, removeAllHighlights) {
 		}
 	}
 
-	if (!gCachedSelector || !gValidSelector || foundElements) {
+	if (!gCachedLocator || !gValidLocator || foundElements) {
 		stopObserving()
 		if (removeAllHighlights) {
 			removeHighlightsExceptFor()  // when changing landmarks seting
@@ -172,6 +176,35 @@ function selectAndhighlight(incrementRunCounter, removeAllHighlights) {
 	}
 
 	sendInfo(true, false)
+}
+
+// NOTE: Assumes we have already checked that we have an XPath as locator.
+function evaluatePathAndSetValidity() {
+	const nodeList = []
+	let result = null
+	try {
+		result = document.evaluate(
+			gCachedLocator, document, null, XPathResult.ANY_TYPE, null)
+	} catch {
+		gValidLocator = false
+	} finally {
+		if (result !== null) {  // TODO: check docs for why this check needed
+			// eslint-disable-next-line default-case
+			switch (result.resultType) {
+				case XPathResult.UNORDERED_NODE_ITERATOR_TYPE: {
+					let node = null
+					while (node = result.iterateNext()) {
+						nodeList.push(node)
+					}
+				}
+					break
+				case XPathResult.ANY_UNORDERED_NODE_TYPE:
+				case XPathResult.FIRST_ORDERED_NODE_TYPE:
+					nodeList.push(result.singleNodeValue)  // TODO: test
+			}
+		}
+	}
+	return nodeList
 }
 
 function checkOutlineValidity() {
@@ -190,7 +223,7 @@ function sendInfo(includeSelectorValidity, includeOutlineValidity) {
 	chrome.runtime.sendMessage({ name: 'state', data: gState })
 	if (includeSelectorValidity) {
 		chrome.runtime.sendMessage(
-			{ name: 'validity', of: 'selector', data: gValidSelector })
+			{ name: 'validity', of: 'locator', data: gValidLocator })
 	}
 	if (includeOutlineValidity) {
 		chrome.runtime.sendMessage(
@@ -200,11 +233,11 @@ function sendInfo(includeSelectorValidity, includeOutlineValidity) {
 
 // Event handlers
 
+// TODO: Use else-ifs?
 chrome.storage.onChanged.addListener((changes) => {
 	if (!document.hidden) {
-		// TODO: use else-ifs?
-		if ('selector' in changes) {
-			gCachedSelector = changes.selector.newValue
+		if ('locator' in changes) {
+			gCachedLocator = changes.locator.newValue
 			selectAndhighlight(false, false)
 		}
 		if ('outline' in changes) {
@@ -216,7 +249,7 @@ chrome.storage.onChanged.addListener((changes) => {
 					element.style.outline = gCachedOutline
 				}
 			}
-			if (gState !== states.manual && gCachedSelector) observeDocument()
+			if (gState !== states.manual && gCachedLocator) observeDocument()
 		}
 		if ('monitor' in changes) {
 			if (changes.monitor.newValue === true) {
@@ -255,7 +288,7 @@ function reflectVisibility() {
 
 function startUp() {
 	chrome.storage.sync.get(settings, items => {
-		gCachedSelector = items.selector
+		gCachedLocator = items.selector
 		gCachedOutline = items.outline
 		gLandmarks = items.landmarks
 		gState = items.monitor ? states.observing : states.manual

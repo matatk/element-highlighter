@@ -1,20 +1,20 @@
-Highlight Selector
+Highlight Elements
 ==================
 
-**Browser extension that highlights (and optionally landmarks) elements on the page that match a selector.**
+**Browser extension that highlights (and optionally landmarks) elements on the page that match a CSS selector or XPath.**
 
-This simple browser extension highlights all elements on the page that match a selector, using a CSS outline of your choice. It can also create a landmark region around each match, so that if you can't see the screen, prefer using the keyboard, or are otherwise using assistive technologies (such as a screen reader, or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/)), you can easily find the matching elements.
+This simple browser extension highlights all elements on the page that match a selector or XPath, using a CSS outline of your choice. It can also create a landmark region around each match, so that if you can't see the screen, prefer using the keyboard, or are otherwise using assistive technologies (such as a screen reader, or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/)), you can easily find the matching elements.
 
-Your selector will run on all pages automatically. On Chromium-based browsers you will need to refresh any pages that are open when you first load the extension, though.
+Your selector/XPath will run on all pages automatically. On Chromium-based browsers you will need to refresh any pages that are open when you first load the extension, though.
 
-By default, whilst a query exists in the "selector" input box, the page will be re-queried on any DOM change (this uses a [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) behind the scenes). However, if there are subsequent mutations to the DOM within a two-second window, they will be ignored, and the page will be re-queried at the end of a further two-second window. This is intended to mitigate most performance concerns during active use. Some pages (often web apps or games) change a lot, though, so a checkbox is provided to turn off change monitoring entirely.
+By default, whilst a query exists in the "Selector or XPath" input box, the page will be re-queried on any DOM change (this uses a [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) behind the scenes). However, if there are subsequent mutations to the DOM within a two-second window, they will be ignored, and the page will be re-queried at the end of a further two-second window. This is intended to mitigate most performance concerns during active use. Some pages (often web apps or games) change a lot, though, so a checkbox is provided to turn off change monitoring entirely.
 
-It is recommended to leave the selector box blank, or to engage manual mode, when you're not using the extension, to avoid wasting CPU time and energy.
+It is recommended to leave the selector/XPath box blank, or to engage manual mode, when you're not using the extension, to avoid wasting CPU time and energy.
 
 Installing the extension
 ------------------------
 
-First you need to either check out, or [download the code](https://github.com/matatk/highlight-selector/archive/refs/heads/main.zip). You can then sideload it manually in various browsers—point your browser at the `extension/` directory. Here are the instructions for some popular ones:
+First you need to either check out, or [download the code](https://github.com/matatk/highlight-elements/archive/refs/heads/main.zip). You can then sideload it manually in various browsers—point your browser at the `extension/` directory. Here are the instructions for some popular ones:
 
 * **Firefox:** [Temporary installation in Firefox](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/)
 
@@ -31,9 +31,9 @@ First you need to either check out, or [download the code](https://github.com/ma
 Using the extension
 -------------------
 
-Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> on Mac) to bring up the pop-up, where you can update your selector and tweak the outline style.
+Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> on Mac) to bring up the pop-up, where you can update your selector/XPath and tweak the outline style.
 
-Your chosen selector and outline styles will be saved across browser restarts.
+Your chosen selector/XPath and outline styles will be saved across browser restarts.
 
 In the pop-up, you can also toggle the two checkboxes to control whether the page is automatically monitored, and whether landmark regions are placed around each match. These settings, too, will be saved.
 
@@ -42,18 +42,20 @@ In the pop-up, you can also toggle the two checkboxes to control whether the pag
 Keyboard workflow tips
 ----------------------
 
-* Pressing <kbd>Return</kbd>/<kbd>Enter</kbd> or simply moving focus away from an input box will run the selector, or update the outline style, if the values have changed.
+* Pressing <kbd>Return</kbd>/<kbd>Enter</kbd> or simply moving focus away from an input box will run the selector/XPath, or update the outline style, if the values have changed.
 
-* In addition, if you're running in manual mode (where the page is not monitored for changes), pressing <kbd>Return</kbd>/<kbd>Enter</kbd> will re-run the selector even if it hasn't changed.
+* In addition, if you're running in manual mode (where the page is not monitored for changes), pressing <kbd>Return</kbd>/<kbd>Enter</kbd> will re-run the selector/XPath even if it hasn't changed.
 
-* Making the selector blank will disable highlighting. If you enter a blank outline style, the default style will come back.
+* Making the selector/XPath blank will disable highlighting. If you enter a blank outline style, the default style will come back.
 
-* The pop-up stays open after you've entered/updated values, so you can keep refining your selector. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/outline, you can just press <kbd>Escape</kbd> and the pop-up will close, and the new value will be used.
+* The pop-up stays open after you've entered/updated values, so you can keep refining your selector/XPath. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/XPath/outline, you can just press <kbd>Escape</kbd> and the pop-up will close, and the new value will be used.
 
 Limitations
 -----------
 
-It's possible that, depending on the page's styling, the use of landmark regions will alter the visual presentation of the page.
+It's possible that, depending on the page's styling, the use of landmark regions will alter the visual presentation of the page. In extreme cases, it could interfere with the functionality, though this is expected to be very rare.
+
+The support for XPaths is somewhat limited right now (it is geared towards absolute paths that return single results, though support for more is in progress).
 
 The extension is forbidden from running on some pages. If you visit a built-in browser page (where the URL doesn't start with `https?://`) the pop-up's input controls will be disabled. However, the extension will also not run on the browser's extension store pages, and that is not detected by the pop-up.
 

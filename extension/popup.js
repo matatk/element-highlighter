@@ -1,7 +1,7 @@
 'use strict'
 // NOTE: Also in content.js
 const settings = {
-	'selector': null,
+	'locator': null,
 	'outline': '4px solid orange',
 	'monitor': true,
 	'landmarks': false
@@ -41,7 +41,7 @@ for (const setting in settings) {
 	}
 }
 
-document.getElementById('selector').addEventListener('keydown', event => {
+document.getElementById('locator').addEventListener('keydown', event => {
 	if (event.code === 'Enter') {
 		withActiveTab(tab => chrome.tabs.sendMessage(tab.id, { name: 'run' }))
 	}
@@ -70,7 +70,7 @@ chrome.runtime.onMessage.addListener(message => {
 })
 
 document.getElementById('help').addEventListener('click', () => {
-	chrome.tabs.create({ url: 'https://github.com/matatk/highlight-selector/blob/main/README.md#highlight-selector' })
+	chrome.tabs.create({ url: 'https://github.com/matatk/highlight-elements/blob/main/README.md#highlight-elements' })
 	window.close()
 })
 
