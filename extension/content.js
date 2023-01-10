@@ -182,6 +182,16 @@ function selectAndhighlight(incrementRunCounter, removeAllHighlights) {
 function evaluatePathAndSetValidity() {
 	const nodeList = []
 	let result = null
+
+	function addNoBigNodes(node) {
+		if (node === document ||
+			node === document.documentElement ||
+			node === document.body) {
+			return
+		}
+		nodeList.push(node)
+	}
+
 	try {
 		result = document.evaluate(
 			gCachedLocator, document, null, XPathResult.ANY_TYPE, null)
@@ -194,16 +204,17 @@ function evaluatePathAndSetValidity() {
 				case XPathResult.UNORDERED_NODE_ITERATOR_TYPE: {
 					let node = null
 					while (node = result.iterateNext()) {
-						nodeList.push(node)
+						addNoBigNodes(node)
 					}
 				}
 					break
 				case XPathResult.ANY_UNORDERED_NODE_TYPE:
 				case XPathResult.FIRST_ORDERED_NODE_TYPE:
-					nodeList.push(result.singleNodeValue)  // TODO: test
+					addNoBigNodes(result.singleNodeValue)  // TODO: test
 			}
 		}
 	}
+
 	return nodeList
 }
 

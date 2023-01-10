@@ -55,7 +55,7 @@ Limitations
 
 It's possible that, depending on the page's styling, the use of landmark regions will alter the visual presentation of the page. In extreme cases, it could interfere with the functionality, though this is expected to be very rare.
 
-The support for XPaths is somewhat limited right now (it is geared towards absolute paths that return single results, though support for more is in progress).
+The support for XPaths is somewhat limited right now (it is geared towards absolute paths that return single results, though support for more is in progress). Only elements below the `<body>` will be matched for any given XPath query.
 
 The extension is forbidden from running on some pages. If you visit a built-in browser page (where the URL doesn't start with `https?://`) the pop-up's input controls will be disabled. However, the extension will also not run on the browser's extension store pages, and that is not detected by the pop-up.
 
