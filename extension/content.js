@@ -140,10 +140,11 @@ function selectAndhighlight(incrementRunCounter, removeAllHighlights) {
 	gValidLocator = true
 	gMatchCounter = 0
 	if (gState !== states.manual) gState = states.notObserving
-	let foundElements = null
+	const foundElements = new Set()
 
 	if (gCachedLocator) {
 		let nodeList = null
+
 		if (gCachedLocator.startsWith('/')) {
 			nodeList = evaluatePathAndSetValidity()
 		} else {
@@ -153,15 +154,19 @@ function selectAndhighlight(incrementRunCounter, removeAllHighlights) {
 				gValidLocator = false
 			}
 		}
+
 		if (gValidLocator) {
-			foundElements = new Set(Array.from(nodeList).filter(
-				element => !element.hasAttribute(LANDMARK_MARKER_ATTR)))
+			for (const match of nodeList) {
+				if (!match.hasAttribute(LANDMARK_MARKER_ATTR)) {
+					foundElements.add(match)
+				}
+			}
 			gMatchCounter = foundElements.size
 			if (incrementRunCounter) gRunCounter++
 		}
 	}
 
-	if (!gCachedLocator || !gValidLocator || foundElements) {
+	if (!gCachedLocator || !gValidLocator || foundElements.size === 0) {
 		stopObserving()
 		if (removeAllHighlights) {
 			removeHighlightsExceptFor()  // when changing landmarks seting
