@@ -1,0 +1,29 @@
+body { margin: 1em; }
+
+label {
+	display: block;
+	font-weight: bold;
+	margin-bottom: 0.5em;
+}
+
+* + label, * + button { margin-top: 1em; }
+
+.input-and-validity, .tick {
+	display: flex;
+	align-items: center;  /* needed for Firefox */
+	gap: 0.5em;
+}
+
+.tick input { margin: 0; }
+
+button {
+	text-align: center;  /* needed for Firefox */
+	width: 100%;         /* needed for Chrome */
+}
+
+p:last-child { margin-bottom: 0; }
+
+#description { margin-top: 0.25em; }
+#description p { margin: 0.25em; }
+
+summary { font-weight: bold; }
