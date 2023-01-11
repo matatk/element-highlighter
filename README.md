@@ -1,7 +1,7 @@
 Highlight Elements
 ==================
 
-**Browser extension that highlights (and optionally landmarks) elements on the page that match a CSS selector or XPath.**
+**Browser extension that highlights elements that match a CSS selector or an XPath—both visually, and optionally via landmark regions.**
 
 This simple browser extension highlights all elements on the page that match a selector or XPath, using a CSS outline of your choice. It can also create a landmark region around each match, so that if you can't see the screen, prefer using the keyboard, or are otherwise using assistive technologies (such as a screen reader, or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/)), you can easily find the matching elements.
 
@@ -55,7 +55,9 @@ Limitations
 
 It's possible that, depending on the page's styling, the use of landmark regions will alter the visual presentation of the page. In extreme cases, it could interfere with the functionality, though this is expected to be very rare.
 
-The support for XPaths is somewhat limited right now (it is geared towards absolute paths that return single results, though support for more is in progress). Only elements below the `<body>` will be matched for any given XPath query.
+Only elements below the `<body>` will be counted as matches, and highlighted (for either type of query).
+
+An XPath can return more than just an element, or elements, but only XPaths that return elements are supported.
 
 The extension is forbidden from running on some pages. If you visit a built-in browser page (where the URL doesn't start with `https?://`) the pop-up's input controls will be disabled. However, the extension will also not run on the browser's extension store pages, and that is not detected by the pop-up.
 
