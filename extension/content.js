@@ -15,7 +15,7 @@ const states = Object.freeze({
 	manual: 'Manual activation'
 })
 
-const LANDMARK_MARKER_ATTR = 'data-highlight-elements-landmark'
+const LANDMARK_MARKER_ATTR = 'data-element-highlighter-landmark'
 const STARTUP_GRACE_TIME = 2e3
 const MUTATION_IGNORE_TIME = 2e3
 const gHighlighted = new Map()  // elmnt : { outline: str, landmark: elmnt }

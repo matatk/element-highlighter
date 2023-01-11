@@ -3,11 +3,11 @@
   "browser_action": {
     "browser_style": true,
     "default_popup": "popup.html",
-    "default_title": "Highlight Elements"
+    "default_title": "Element Highlighter"
   },
   "browser_specific_settings": {
     "gecko": {
-      "id": "highlight-elements@matatk.agrip.org.uk"
+      "id": "element-highlighter@matatk.agrip.org.uk"
     }
   },
   "commands": {
@@ -28,13 +28,13 @@
     }
   ],
   "description": "Highlight (and optionally landmark) elements on the page that match a selector or XPath.",
-  "homepage_url": "http://github.com/matatk/highlight-elements",
+  "homepage_url": "http://github.com/matatk/element-highlighter",
   "manifest_version": 2,
-  "name": "Highlight Elements",
+  "name": "Element Highlighter",
   "permissions": [
     "activeTab",
     "storage"
   ],
-  "short_name": "Highlight Elements",
+  "short_name": "Element Highlighter",
   "version": "0.1.0"
 }

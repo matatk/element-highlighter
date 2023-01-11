@@ -1,5 +1,5 @@
-Highlight Elements
-==================
+Element Highlighter
+===================
 
 **Browser extension that highlights elements that match a CSS selector or an XPath—both visually, and optionally via landmark regions.**
 
@@ -14,7 +14,7 @@ It is recommended to leave the selector/XPath box blank, or to engage manual mod
 Installing the extension
 ------------------------
 
-First you need to either check out, or [download the code](https://github.com/matatk/highlight-elements/archive/refs/heads/main.zip). You can then sideload it manually in various browsers—point your browser at the `extension/` directory. Here are the instructions for some popular ones:
+First you need to either check out, or [download the code](https://github.com/matatk/element-highlighter/archive/refs/heads/main.zip). You can then sideload it manually in various browsers—point your browser at the `extension/` directory. Here are the instructions for some popular ones:
 
 * **Firefox:** [Temporary installation in Firefox](https://extensionworkshop.com/documentation/develop/temporary-installation-in-firefox/)
 
