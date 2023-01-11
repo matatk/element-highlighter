@@ -135,6 +135,7 @@ function highlight(elements) {
 }
 
 function locateAndhighlight(incrementRunCounter, removeAllHighlights) {
+	gHighlightCounter = 0
 	gValidLocator = true
 	gMatchCounter = 0
 	const foundElements = new Set()

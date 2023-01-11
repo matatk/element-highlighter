@@ -33,11 +33,13 @@ Using the extension
 
 Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> on Mac) to bring up the pop-up, where you can update your selector/XPath and tweak the outline style.
 
-Your chosen selector/XPath and outline styles will be saved across browser restarts.
-
-In the pop-up, you can also toggle the two checkboxes to control whether the page is automatically monitored, and whether landmark regions are placed around each match. These settings, too, will be saved.
+In the pop-up, you can also toggle the two checkboxes to control whether the page is automatically monitored, and whether landmark regions are placed around each match.
 
 **Note:** Landmark regions are only discoverable via assistive technologies, such as screen readers or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/).
+
+Landmark regions are added into the DOM to wrap the matched elements. The regions are labelled with a number corresponding to the element's order in the set of elements found, and they're given a region type of "Highlight".
+
+Your chosen selector/XPath, outline style, and behavioural settings will be saved across browser restarts.
 
 Keyboard workflow tips
 ----------------------
