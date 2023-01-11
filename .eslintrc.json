@@ -70,7 +70,7 @@
     "grouped-accessor-pairs": "error",
     "guard-for-in": "off",
     "id-denylist": "error",
-    "id-length": "error",
+    "id-length": [ "error", { "exceptions": [ "i", "j" ] } ],
     "id-match": "error",
     "implicit-arrow-linebreak": "error",
     "indent": [
@@ -104,7 +104,7 @@
         "ignoreUrls": true
       }
     ],
-    "max-lines": "error",
+    "max-lines": "warn",
     "max-lines-per-function": "error",
     "max-nested-callbacks": "error",
     "max-params": "error",

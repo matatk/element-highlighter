@@ -37,6 +37,7 @@ let gState = null
 
 // Mutation observation
 
+// TODO: Actually stop observing for two seconds?
 const gObserver = new MutationObserver(() => {
 	chrome.runtime.sendMessage({ name: 'mutations', data: ++gMutationCounter })
 	const now = Date.now()
@@ -46,26 +47,23 @@ const gObserver = new MutationObserver(() => {
 	} else if (gScheduledRun === null) {
 		gScheduledRun = setTimeout(
 			runDueToMutation, MUTATION_IGNORE_TIME, now + MUTATION_IGNORE_TIME)
-		gState = states.ignoring
-		chrome.runtime.sendMessage({ name: 'state', data: gState })
+		state('ignoring')
 	}
 })
 
 function runDueToMutation(currentTime) {
-	selectAndhighlight(true, false)
+	locateAndhighlight(true, false)
 	gScheduledRun = null
 	gLastMutationTime = currentTime
 }
 
 function observeDocument() {
-	if (gState === states.manual) return
 	gObserver.observe(document, {
 		attributes: true,
 		childList: true,
 		subtree: true
 	})
-	gState = states.observing
-	chrome.runtime.sendMessage({ name: 'state', data: gState })
+	state(states.observing)
 }
 
 function stopObserving() {
@@ -136,10 +134,9 @@ function highlight(elements) {
 	}
 }
 
-function selectAndhighlight(incrementRunCounter, removeAllHighlights) {
+function locateAndhighlight(incrementRunCounter, removeAllHighlights) {
 	gValidLocator = true
 	gMatchCounter = 0
-	if (gState !== states.manual) gState = states.notObserving
 	const foundElements = new Set()
 
 	if (gCachedLocator) {
@@ -166,18 +163,22 @@ function selectAndhighlight(incrementRunCounter, removeAllHighlights) {
 		}
 	}
 
-	if (!gCachedLocator || !gValidLocator || foundElements.size === 0) {
-		stopObserving()
-		if (removeAllHighlights) {
-			removeHighlightsExceptFor()  // when changing landmarks seting
-		} else {
-			removeHighlightsExceptFor(foundElements)
-		}
+	stopObserving()
+
+	if (removeAllHighlights) {
+		removeHighlightsExceptFor()  // when changing landmarks seting
+	} else {
+		removeHighlightsExceptFor(foundElements)
 	}
 
-	if (gMatchCounter > 0) {
-		highlight(foundElements)
-		if (gState !== states.manual) observeDocument()
+	highlight(foundElements)
+
+	if (gState !== states.manual) {
+		if (gCachedLocator && gValidLocator) {
+			observeDocument()
+		} else {
+			state(states.notObserving)
+		}
 	}
 
 	sendInfo(true, false)
@@ -206,16 +207,24 @@ function evaluatePathAndSetValidity() {
 		if (result !== null) {  // TODO: check docs for why this check needed
 			// eslint-disable-next-line default-case
 			switch (result.resultType) {
-				case XPathResult.UNORDERED_NODE_ITERATOR_TYPE: {
+				case XPathResult.UNORDERED_NODE_ITERATOR_TYPE:
+				case XPathResult.ORDERED_NODE_ITERATOR_TYPE: {
 					let node = null
+					// eslint-disable-next-line no-cond-assign
 					while (node = result.iterateNext()) {
 						addNoBigNodes(node)
 					}
 				}
 					break
+				case XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE:
+				case XPathResult.ORDERED_NODE_SNAPSHOT_TYPE:
+					for (let i = 0; i < result.snapshotLength; i++) {
+						nodeList.push(result.snapshotItem(i))  // TODO: check
+					}
+					break
 				case XPathResult.ANY_UNORDERED_NODE_TYPE:
 				case XPathResult.FIRST_ORDERED_NODE_TYPE:
-					addNoBigNodes(result.singleNodeValue)  // TODO: test
+					addNoBigNodes(result.singleNodeValue)  // TODO: check
 			}
 		}
 	}
@@ -232,12 +241,12 @@ function checkOutlineValidity() {
 		{ name: 'validity', of: 'outline', data: gValidOutline })
 }
 
-function sendInfo(includeSelectorValidity, includeOutlineValidity) {
+function sendInfo(includeLocatorValidity, includeOutlineValidity) {
 	chrome.runtime.sendMessage({ name: 'mutations', data: gMutationCounter })
 	chrome.runtime.sendMessage({ name: 'runs', data: gRunCounter })
 	chrome.runtime.sendMessage({ name: 'matches', data: gMatchCounter })
 	chrome.runtime.sendMessage({ name: 'state', data: gState })
-	if (includeSelectorValidity) {
+	if (includeLocatorValidity) {
 		chrome.runtime.sendMessage(
 			{ name: 'validity', of: 'locator', data: gValidLocator })
 	}
@@ -254,7 +263,7 @@ chrome.storage.onChanged.addListener((changes) => {
 	if (!document.hidden) {
 		if ('locator' in changes) {
 			gCachedLocator = changes.locator.newValue
-			selectAndhighlight(false, false)
+			locateAndhighlight(true, false)
 		}
 		if ('outline' in changes) {
 			gCachedOutline = changes.outline.newValue
@@ -269,17 +278,16 @@ chrome.storage.onChanged.addListener((changes) => {
 		}
 		if ('monitor' in changes) {
 			if (changes.monitor.newValue === true) {
-				gState = states.observing
-				selectAndhighlight(false, false)
+				state(states.observing)
+				locateAndhighlight(false, false)  // will observeDocument()
 			} else {
 				stopObservingAndUnScheduleRun()
-				gState = states.manual
-				chrome.runtime.sendMessage({ name: 'state', data: gState })
+				state(states.manual)
 			}
 		}
 		if ('landmarks' in changes) {
 			gLandmarks = changes.landmarks.newValue
-			selectAndhighlight(false, true)
+			locateAndhighlight(false, true)
 		}
 	}
 })
@@ -288,7 +296,7 @@ chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'get-info') {
 		sendInfo(true, true)
 	} else if (message.name === 'run' && gState === states.manual) {
-		selectAndhighlight(true, false)
+		locateAndhighlight(true, false)
 	}
 })
 
@@ -300,24 +308,29 @@ function reflectVisibility() {
 	}
 }
 
-// Bootstrapping
+// Bootstrapping and state
 
 function startUp() {
 	chrome.storage.sync.get(settings, items => {
-		gCachedLocator = items.selector
+		gCachedLocator = items.locator
 		gCachedOutline = items.outline
 		gLandmarks = items.landmarks
-		gState = items.monitor ? states.observing : states.manual
+		state(items.monitor ? states.observing : states.manual)
 		checkOutlineValidity()
-		selectAndhighlight(true, false)
+		locateAndhighlight(true, false)
 	})
+}
+
+function state(newState) {
+	gState = newState
+	chrome.runtime.sendMessage({ name: 'state', data: newState })
 }
 
 document.addEventListener('visibilitychange', reflectVisibility)
 
 // Firefox auto-injects content scripts
 if (!document.hidden) {
-	gState = states.startup
+	state(states.startup)
 	sendInfo(false, false)  // pop-up could be open with altered input values
 	setTimeout(startUp, STARTUP_GRACE_TIME)
 }
