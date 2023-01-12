@@ -46,32 +46,30 @@ chrome.storage.sync.get(settings, items => {
 		const control = document.getElementById(setting)
 		if (typeof settings[setting] === 'boolean') {
 			control.checked = items[setting]
+
+			simpleChangeHandler(control, event => {
+				chrome.storage.sync.set({ [setting]: event.target.checked })
+			})
+		} else if (setting === 'outline' || setting === 'boxShadow') {
+			control.value = items[setting]
+
+			showValidity(setting, isValidCss(setting, control.value))
+			control.addEventListener('change', event => {
+				const validity = isValidCss(setting, event.target.value)
+				if (validity !== false) {
+					chrome.storage.sync.set({ [setting]: event.target.value })
+				}
+				showValidity(setting, validity)
+			})
 		} else {
 			control.value = items[setting]
+
+			simpleChangeHandler(control, event => {
+				chrome.storage.sync.set({ [setting]: event.target.value })
+			})
 		}
 	}
 })
-
-for (const setting in settings) {
-	const control = document.getElementById(setting)
-	if (typeof settings[setting] === 'boolean') {
-		simpleChangeHandler(control, event => {
-			chrome.storage.sync.set({ [setting]: event.target.checked })
-		})
-	} else if (setting === 'outline' || setting === 'boxShadow') {
-		control.addEventListener('change', event => {
-			const validity = isValidCss(setting, event.target.value)
-			if (validity !== false) {
-				chrome.storage.sync.set({ [setting]: event.target.value })
-			}
-			showValidity(setting, validity)
-		})
-	} else {
-		simpleChangeHandler(control, event => {
-			chrome.storage.sync.set({ [setting]: event.target.value })
-		})
-	}
-}
 
 document.getElementById('locator').addEventListener('keydown', event => {
 	if (event.code === 'Enter') {
