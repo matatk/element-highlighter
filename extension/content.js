@@ -2,7 +2,8 @@
 // NOTE: Also in popup.js
 const settings = {
 	'locator': null,
-	'outline': '4px solid orange',
+	'outline': '2px solid orange',
+	'boxShadow': 'inset 0 0 0 2px orange',
 	'monitor': true,
 	'landmarks': false
 }
@@ -20,20 +21,24 @@ const STARTUP_GRACE_TIME = 2e3
 const MUTATION_IGNORE_TIME = 2e3
 const gHighlighted = new Map()  // elmnt : { outline: str, landmark: elmnt }
 
-let gCachedLocator = null
-let gCachedOutline = null
-let gValidLocator = true
-let gValidOutline = true
+const gCached = {
+	outline: null,
+	boxShadow: null,
+	locator: null
+}
 
-let gHighlightCounter = 0
+let gValidLocator = true
+
+let gLandmarks = null
+let gState = null
+
+let gMatchCounter = 0
+let gHighlightLandmarkCounter = 0
 let gMutationCounter = 0
 let gRunCounter = 0
-let gMatchCounter = 0
 
 let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
-let gLandmarks = null
-let gState = null
 
 // Mutation observation
 
@@ -85,7 +90,7 @@ function makeWrappingLandmark() {
 	const wrapper = document.createElement('DIV')
 	wrapper.setAttribute('role', 'region')
 	wrapper.setAttribute('aria-roledescription', 'Highlight')
-	wrapper.setAttribute('aria-label', ++gHighlightCounter)
+	wrapper.setAttribute('aria-label', ++gHighlightLandmarkCounter)
 	wrapper.setAttribute(LANDMARK_MARKER_ATTR, '')
 	return wrapper
 }
@@ -93,11 +98,12 @@ function makeWrappingLandmark() {
 function removeHighlightsExceptFor(matches = new Set()) {
 	// The landmark should be the element's parent, but other code running on
 	// the page could've moved things around, so we store references to both.
-	for (const [element, { outline, landmark }] of gHighlighted.entries()) {
+	for (const [element, { outline, boxShadow, landmark }] of gHighlighted.entries()) {
 		if (matches.has(element)) continue
 
 		if (document.body.contains(element)) {
 			element.style.outline = outline ?? ''
+			element.style.boxShadow = boxShadow ?? ''
 			if (element.getAttribute('style') === '') {
 				element.removeAttribute('style')
 			}
@@ -121,8 +127,11 @@ function highlight(elements) {
 	for (const element of elements) {
 		if (gHighlighted.has(element)) continue
 
+		// Save current values first
 		const outline = element.style.outline
-		if (gValidOutline) element.style.outline = gCachedOutline
+		if (gCached.outline) element.style.outline = gCached.outline
+		const boxShadow = element.style.boxShadow
+		if (gCached.boxShadow) element.style.boxShadow = gCached.boxShadow
 
 		const landmark = gLandmarks ? makeWrappingLandmark() : null
 		if (gLandmarks) {
@@ -130,24 +139,24 @@ function highlight(elements) {
 			landmark.appendChild(element)
 		}
 
-		gHighlighted.set(element, { outline, landmark })
+		gHighlighted.set(element, { outline, boxShadow, landmark })
 	}
 }
 
 function locateAndhighlight(incrementRunCounter, removeAllHighlights) {
-	gHighlightCounter = 0
 	gValidLocator = true
 	gMatchCounter = 0
+	gHighlightLandmarkCounter = 0
 	const foundElements = new Set()
 
-	if (gCachedLocator) {
+	if (gCached.locator) {
 		let nodeList = null
 
-		if (gCachedLocator.startsWith('/')) {
+		if (gCached.locator.startsWith('/')) {
 			nodeList = evaluatePathAndSetValidity()
 		} else {
 			try {
-				nodeList = document.body.querySelectorAll(gCachedLocator)
+				nodeList = document.body.querySelectorAll(gCached.locator)
 			} catch {
 				gValidLocator = false
 			}
@@ -175,14 +184,14 @@ function locateAndhighlight(incrementRunCounter, removeAllHighlights) {
 	highlight(foundElements)
 
 	if (gState !== states.manual) {
-		if (gCachedLocator && gValidLocator) {
+		if (gCached.locator && gValidLocator) {
 			observeDocument()
 		} else {
 			state(states.notObserving)
 		}
 	}
 
-	sendInfo(true, false)
+	sendInfo(true)
 }
 
 // NOTE: Assumes we have already checked that we have an XPath as locator.
@@ -201,12 +210,11 @@ function evaluatePathAndSetValidity() {
 
 	try {
 		result = document.evaluate(
-			gCachedLocator, document, null, XPathResult.ANY_TYPE, null)
+			gCached.locator, document, null, XPathResult.ANY_TYPE, null)
 	} catch {
 		gValidLocator = false
 	} finally {
 		if (result !== null) {  // TODO: check docs for why this check needed
-			// eslint-disable-next-line default-case
 			switch (result.resultType) {
 				case XPathResult.UNORDERED_NODE_ITERATOR_TYPE:
 				case XPathResult.ORDERED_NODE_ITERATOR_TYPE: {
@@ -226,6 +234,8 @@ function evaluatePathAndSetValidity() {
 				case XPathResult.ANY_UNORDERED_NODE_TYPE:
 				case XPathResult.FIRST_ORDERED_NODE_TYPE:
 					addNoBigNodes(result.singleNodeValue)  // TODO: check
+					break
+				default:
 			}
 		}
 	}
@@ -233,69 +243,59 @@ function evaluatePathAndSetValidity() {
 	return nodeList
 }
 
-function checkOutlineValidity() {
-	const test = document.createElement('DIV')
-	test.style.outline = gCachedOutline
-	gValidOutline = test.style.outline !== ''
-	test.remove()
-	chrome.runtime.sendMessage(
-		{ name: 'validity', of: 'outline', data: gValidOutline })
-}
-
-function sendInfo(includeLocatorValidity, includeOutlineValidity) {
+function sendInfo(includeLocatorValidity) {
 	chrome.runtime.sendMessage({ name: 'mutations', data: gMutationCounter })
 	chrome.runtime.sendMessage({ name: 'runs', data: gRunCounter })
 	chrome.runtime.sendMessage({ name: 'matches', data: gMatchCounter })
 	chrome.runtime.sendMessage({ name: 'state', data: gState })
 	if (includeLocatorValidity) {
 		chrome.runtime.sendMessage(
-			{ name: 'validity', of: 'locator', data: gValidLocator })
-	}
-	if (includeOutlineValidity) {
-		chrome.runtime.sendMessage(
-			{ name: 'validity', of: 'outline', data: gValidOutline })
+			{ name: 'locator-validity', data: gValidLocator })
 	}
 }
 
 // Event handlers
 
-// TODO: Use else-ifs?
 chrome.storage.onChanged.addListener((changes) => {
-	if (!document.hidden) {
-		if ('locator' in changes) {
-			gCachedLocator = changes.locator.newValue
-			locateAndhighlight(true, false)
-		}
-		if ('outline' in changes) {
-			gCachedOutline = changes.outline.newValue
-			stopObserving()
-			checkOutlineValidity()
-			if (gValidOutline) {
+	if (document.hidden) return
+	for (const setting in changes) {
+		switch (setting) {
+			case 'locator':
+				gCached.locator = changes.locator.newValue
+				locateAndhighlight(true, false)
+				break
+			case 'outline':
+			case 'boxShadow':
+				gCached[setting] = changes[setting].newValue
+				stopObserving()
 				for (const element of gHighlighted.keys()) {
-					element.style.outline = gCachedOutline
+					element.style[setting] = gCached[setting]
 				}
-			}
-			if (gState !== states.manual && gCachedLocator) observeDocument()
-		}
-		if ('monitor' in changes) {
-			if (changes.monitor.newValue === true) {
-				state(states.observing)
-				locateAndhighlight(false, false)  // will observeDocument()
-			} else {
-				stopObservingAndUnScheduleRun()
-				state(states.manual)
-			}
-		}
-		if ('landmarks' in changes) {
-			gLandmarks = changes.landmarks.newValue
-			locateAndhighlight(false, true)
+				if (gState !== states.manual && gCached.locator) {
+					observeDocument()
+				}
+				break
+			case 'monitor':
+				if (changes.monitor.newValue === true) {
+					state(states.observing)
+					locateAndhighlight(false, false)  // will observeDocument()
+				} else {
+					stopObservingAndUnScheduleRun()
+					state(states.manual)
+				}
+				break
+			case 'landmarks':
+				gLandmarks = changes.landmarks.newValue
+				locateAndhighlight(false, true)
+				break
+			default:
 		}
 	}
 })
 
 chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'get-info') {
-		sendInfo(true, true)
+		sendInfo(true)
 	} else if (message.name === 'run' && gState === states.manual) {
 		locateAndhighlight(true, false)
 	}
@@ -313,11 +313,11 @@ function reflectVisibility() {
 
 function startUp() {
 	chrome.storage.sync.get(settings, items => {
-		gCachedLocator = items.locator
-		gCachedOutline = items.outline
+		gCached.locator = items.locator
+		gCached.outline = items.outline
+		gCached.boxShadow = items.boxShadow
 		gLandmarks = items.landmarks
 		state(items.monitor ? states.observing : states.manual)
-		checkOutlineValidity()
 		locateAndhighlight(true, false)
 	})
 }
@@ -332,6 +332,6 @@ document.addEventListener('visibilitychange', reflectVisibility)
 // Firefox auto-injects content scripts
 if (!document.hidden) {
 	state(states.startup)
-	sendInfo(false, false)  // pop-up could be open with altered input values
+	sendInfo(false)  // pop-up could be open with altered input values
 	setTimeout(startUp, STARTUP_GRACE_TIME)
 }

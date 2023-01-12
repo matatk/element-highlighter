@@ -9,8 +9,7 @@
 		<label for="locator">Selector or XPath</label>
 		<div class="input-and-validity">
 			<input id="locator" aria-describedby="description" autofocus>
-			<span id="locator-valid">&#9989;</span>
-			<span hidden id="locator-invalid">&#10060;</span>
+			<span id="locator-validity" class="validity-valid"></span>
 		</div>
 		<div id="description">
 			<p aria-live="polite" aria-atomic="true"><span id="matches"></span> matches</p>
@@ -32,12 +31,17 @@
 		<label for="outline">Outline</label>
 		<div class="input-and-validity">
 			<input id="outline">
-			<span id="outline-valid">&#9989;</span>
-			<span hidden id="outline-invalid">&#10060;</span>
+			<span id="outline-validity" class="validity-valid"></span>
 		</div>
 
-		<button id="help">Help</button>
+		<label for="boxShadow">Box shadow</label>
+		<div class="input-and-validity">
+			<input id="boxShadow">
+			<span id="boxShadow-validity" class="validity-valid"></span>
+		</div>
 
+		<button id="reset">Reset to defaults</button>
+		<button id="help">Help</button>
 		<script src="popup.js"></script>
 	</body>
 </html>

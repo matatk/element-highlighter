@@ -1,5 +1,9 @@
 body { margin: 1em; }
 
+.validity-valid::before { content: "\2705"; }
+.validity-invalid::after { content: "\274c"; }
+.validity-empty::after { content: "\2205"; }
+
 label {
 	display: block;
 	font-weight: bold;
@@ -8,7 +12,8 @@ label {
 
 * + label, * + button { margin-top: 1em; }
 
-.input-and-validity, .tick {
+.input-and-validity,
+.tick {
 	display: flex;
 	align-items: center;  /* needed for Firefox */
 	gap: 0.5em;

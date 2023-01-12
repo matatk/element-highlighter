@@ -6,9 +6,10 @@
     "start:_core": "web-ext run --no-config-discovery --source-dir extension --start-url https://github.com/matatk/element-highlighter",
     "start:chrome": "npm run start:_core -- --target chromium",
     "start:firefox": "npm run start:_core -- --target firefox-desktop",
-    "test": "eslint ."
+    "test": "eslint . && stylelint extension/popup.css"
   },
   "devDependencies": {
-    "eslint": "^8.31.0"
+    "eslint": "^8.31.0",
+    "stylelint": "^14.16.1"
   }
 }

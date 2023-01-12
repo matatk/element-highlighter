@@ -72,7 +72,6 @@
     "id-denylist": "error",
     "id-length": [ "error", { "exceptions": [ "i", "j" ] } ],
     "id-match": "error",
-    "implicit-arrow-linebreak": "error",
     "indent": [
       "error",
       "tab",
