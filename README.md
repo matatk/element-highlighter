@@ -3,7 +3,7 @@ Element Highlighter
 
 **Browser extension that highlights elements that match a CSS selector or an XPath—both visually, and optionally via landmark regions.**
 
-This simple browser extension highlights all elements on the page that match a selector or XPath, using a CSS outline of your choice. It can also create a landmark region around each match, so that if you can't see the screen, prefer using the keyboard, or are otherwise using assistive technologies (such as a screen reader, or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/)), you can easily find the matching elements.
+This simple browser extension highlights all elements on the page that match a selector or XPath, using a CSS outline and/or box-shadow of your choice. It can also create a landmark region around each match, so that if you can't see the screen, prefer using the keyboard, or are otherwise using assistive technologies (such as a screen reader, or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/)), you can easily find the matching elements.
 
 Your selector/XPath will run on all pages automatically. On Chromium-based browsers you will need to refresh any pages that are open when you first load the extension, though.
 
@@ -31,7 +31,7 @@ First you need to either check out, or [download the code](https://github.com/ma
 Using the extension
 -------------------
 
-Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> on Mac) to bring up the pop-up, where you can update your selector/XPath and tweak the outline style.
+Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> on Mac) to bring up the pop-up, where you can update your selector/XPath and tweak the outline/box-shadow style.
 
 In the pop-up, you can also toggle the two checkboxes to control whether the page is automatically monitored, and whether landmark regions are placed around each match.
 
@@ -39,23 +39,21 @@ In the pop-up, you can also toggle the two checkboxes to control whether the pag
 
 Landmark regions are added into the DOM to wrap the matched elements. The regions are labelled with a number corresponding to the element's order in the set of elements found, and they're given a region type of "Highlight".
 
-Your chosen selector/XPath, outline style, and behavioural settings will be saved across browser restarts.
+Your chosen selector/XPath, outline and box-shadow style, and behavioural settings will be saved across browser restarts.
 
 Keyboard workflow tips
 ----------------------
 
-* Pressing <kbd>Return</kbd>/<kbd>Enter</kbd> or simply moving focus away from an input box will run the selector/XPath, or update the outline style, if the values have changed.
+* Pressing <kbd>Return</kbd>/<kbd>Enter</kbd> or simply moving focus away from an input box will run the selector/XPath, or update the outline or box-shadow style, if the values have changed.
 
-* In addition, if you're running in manual mode (where the page is not monitored for changes), pressing <kbd>Return</kbd>/<kbd>Enter</kbd> will re-run the selector/XPath even if it hasn't changed.
+* In addition, if you're running in manual mode (where the page is not monitored for changes), pressing <kbd>Return</kbd>/<kbd>Enter</kbd> will re-run the selector/XPath, even if it hasn't changed.
 
-* Making the selector/XPath blank will disable highlighting. If you enter a blank outline style, the default style will come back.
-
-* The pop-up stays open after you've entered/updated values, so you can keep refining your selector/XPath. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/XPath/outline, you can just press <kbd>Escape</kbd> and the pop-up will close, and the new value will be used.
+* The pop-up stays open after you've entered/updated values, so you can keep refining your selector/XPath. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/XPath/outline/box-shadow, you can just press <kbd>Escape</kbd> and the pop-up will close, and the new value will be used.
 
 Limitations
 -----------
 
-It's possible that, depending on the page's styling, the use of landmark regions will alter the visual presentation of the page. In extreme cases, it could interfere with the functionality, though this is expected to be very rare.
+It's possible that, depending on the page's styling, the use of landmark regions can alter the visual presentation of the page. In extreme cases, it could interfere with the functionality, though this is expected to be very rare.
 
 Only elements below the `<body>` will be counted as matches, and highlighted (for either type of query).
 
