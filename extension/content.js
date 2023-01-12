@@ -57,7 +57,7 @@ const gObserver = new MutationObserver(() => {
 })
 
 function runDueToMutation(currentTime) {
-	locateAndhighlight(true, false)
+	locateAndhighlight(true)
 	gScheduledRun = null
 	gLastMutationTime = currentTime
 }
@@ -86,68 +86,14 @@ function stopObservingAndUnScheduleRun() {
 
 // Managing highlights (outlines and landmarks)
 
-function makeWrappingLandmark() {
-	const wrapper = document.createElement('DIV')
-	wrapper.setAttribute('role', 'region')
-	wrapper.setAttribute('aria-roledescription', 'Highlight')
-	wrapper.setAttribute('aria-label', ++gHighlightLandmarkCounter)
-	wrapper.setAttribute(LANDMARK_MARKER_ATTR, '')
-	return wrapper
-}
-
-function removeHighlightsExceptFor(matches = new Set()) {
-	// The landmark should be the element's parent, but other code running on
-	// the page could've moved things around, so we store references to both.
-	for (const [element, { outline, boxShadow, landmark }] of gHighlighted.entries()) {
-		if (matches.has(element)) continue
-
-		if (document.body.contains(element)) {
-			element.style.outline = outline ?? ''
-			element.style.boxShadow = boxShadow ?? ''
-			if (element.getAttribute('style') === '') {
-				element.removeAttribute('style')
-			}
-		} else {
-			element.remove()
-		}
-
-		if (landmark) {
-			if (document.body.contains(landmark)) {
-				landmark.replaceWith(...landmark.childNodes)
-			} else {
-				landmark.remove()
-			}
-		}
-
-		gHighlighted.delete(element)
-	}
-}
-
-function highlight(elements) {
-	for (const element of elements) {
-		if (gHighlighted.has(element)) continue
-
-		// Save current values first
-		const outline = element.style.outline
-		if (gCached.outline) element.style.outline = gCached.outline
-		const boxShadow = element.style.boxShadow
-		if (gCached.boxShadow) element.style.boxShadow = gCached.boxShadow
-
-		const landmark = gLandmarks ? makeWrappingLandmark() : null
-		if (gLandmarks) {
-			element.parentElement.insertBefore(landmark, element)
-			landmark.appendChild(element)
-		}
-
-		gHighlighted.set(element, { outline, boxShadow, landmark })
-	}
-}
-
-function locateAndhighlight(incrementRunCounter, removeAllHighlights) {
+function locateAndhighlight(incrementRunCounter) {
 	gValidLocator = true
 	gMatchCounter = 0
 	gHighlightLandmarkCounter = 0
 	const foundElements = new Set()
+
+	stopObserving()
+	removeAllLandmarks()
 
 	if (gCached.locator) {
 		let nodeList = null
@@ -173,15 +119,9 @@ function locateAndhighlight(incrementRunCounter, removeAllHighlights) {
 		}
 	}
 
-	stopObserving()
-
-	if (removeAllHighlights) {
-		removeHighlightsExceptFor()  // when changing landmarks seting
-	} else {
-		removeHighlightsExceptFor(foundElements)
-	}
-
+	removeHighlightsExceptFor(foundElements)
 	highlight(foundElements)
+	addAllLandmarks()
 
 	if (gState !== states.manual) {
 		if (gCached.locator && gValidLocator) {
@@ -243,6 +183,70 @@ function evaluatePathAndSetValidity() {
 	return nodeList
 }
 
+function removeHighlightsExceptFor(matches = new Set()) {
+	for (const [element, info] of gHighlighted) {
+		if (matches.has(element)) continue
+
+		if (document.body.contains(element)) {
+			element.style.outline = info.outline ?? ''
+			element.style.boxShadow = info.boxShadow ?? ''
+			if (element.getAttribute('style') === '') {
+				element.removeAttribute('style')
+			}
+		} else {
+			element.remove()
+		}
+
+		gHighlighted.delete(element)
+	}
+}
+
+function highlight(elements) {
+	for (const element of elements) {
+		if (gHighlighted.has(element)) continue
+
+		// Save current values first
+		const outline = element.style.outline
+		if (gCached.outline) element.style.outline = gCached.outline
+		const boxShadow = element.style.boxShadow
+		if (gCached.boxShadow) element.style.boxShadow = gCached.boxShadow
+
+		const landmark = null
+		gHighlighted.set(element, { outline, boxShadow, landmark })
+	}
+}
+
+function removeAllLandmarks() {
+	if (!gLandmarks) return
+	// The landmark should be the element's parent, but other code running on
+	// the page could've moved things around, so we store references to both.
+	for (const info of gHighlighted.values()) {
+		if (info.landmark) {
+			if (document.body.contains(info.landmark)) {
+				info.landmark.replaceWith(...info.landmark.childNodes)
+			} else {
+				info.landmark.remove()
+			}
+		}
+	}
+}
+
+function addAllLandmarks() {
+	if (!gLandmarks) return
+
+	for (const [element, info] of gHighlighted) {
+		const wrapper = document.createElement('DIV')
+		wrapper.setAttribute('role', 'region')
+		wrapper.setAttribute('aria-roledescription', 'Highlight')
+		wrapper.setAttribute('aria-label', ++gHighlightLandmarkCounter)
+		wrapper.setAttribute(LANDMARK_MARKER_ATTR, '')
+
+		element.parentElement.insertBefore(wrapper, element)
+		wrapper.appendChild(element)
+		info.landmark = wrapper
+	}
+}
+
 function sendInfo(includeLocatorValidity) {
 	chrome.runtime.sendMessage({ name: 'mutations', data: gMutationCounter })
 	chrome.runtime.sendMessage({ name: 'runs', data: gRunCounter })
@@ -262,7 +266,7 @@ chrome.storage.onChanged.addListener((changes) => {
 		switch (setting) {
 			case 'locator':
 				gCached.locator = changes.locator.newValue
-				locateAndhighlight(true, false)
+				locateAndhighlight(true)
 				break
 			case 'outline':
 			case 'boxShadow':
@@ -278,15 +282,16 @@ chrome.storage.onChanged.addListener((changes) => {
 			case 'monitor':
 				if (changes.monitor.newValue === true) {
 					state(states.observing)
-					locateAndhighlight(false, false)  // will observeDocument()
+					locateAndhighlight(false)  // will observeDocument()
 				} else {
 					stopObservingAndUnScheduleRun()
 					state(states.manual)
 				}
 				break
 			case 'landmarks':
+				if (gLandmarks) removeAllLandmarks()
 				gLandmarks = changes.landmarks.newValue
-				locateAndhighlight(false, true)
+				if (gLandmarks) locateAndhighlight(false)
 				break
 			default:
 		}
@@ -297,7 +302,7 @@ chrome.runtime.onMessage.addListener(message => {
 	if (message.name === 'get-info') {
 		sendInfo(true)
 	} else if (message.name === 'run' && gState === states.manual) {
-		locateAndhighlight(true, false)
+		locateAndhighlight(true)
 	}
 })
 
@@ -318,7 +323,7 @@ function startUp() {
 		gCached.boxShadow = items.boxShadow
 		gLandmarks = items.landmarks
 		state(items.monitor ? states.observing : states.manual)
-		locateAndhighlight(true, false)
+		locateAndhighlight(true)
 	})
 }
 

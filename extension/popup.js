@@ -29,9 +29,12 @@ function isValidCss(property, proposed) {
 function showValidity(setting, validity) {
 	const element = document.getElementById(`${setting}-validity`)
 	switch (validity) {
-		case true: element.className = 'validity-valid'; break
-		case false: element.className = 'validity-invalid'; break
-		case null: element.className = 'validity-empty'; break
+		case true: element.className = 'validity-valid';
+			break
+		case false: element.className = 'validity-invalid'
+			break
+		case null: element.className = 'validity-empty'
+			break
 		default: throw Error(`Unexpected validity: "${validity}"`)
 	}
 	document.getElementById(setting).setAttribute(

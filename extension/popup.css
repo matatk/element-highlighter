@@ -10,7 +10,8 @@ label {
 	margin-bottom: 0.5em;
 }
 
-* + label, * + button { margin-top: 1em; }
+* + label,
+* + button { margin-top: 1em; }
 
 .input-and-validity,
 .tick {
