@@ -47,11 +47,13 @@ It is recommended to leave the selector/XPath box blank, or to disable monitorin
 
 Landmark regions are labelled with a number corresponding to the element's order in the set of elements found, and they're given a region description of "Highlight", so they can be distinguished from other regions on the page.
 
-There are two ways that landmarks may be added:
+There are three ways that the extension can add landmarks for matches:
 
 * A matching element with no semantics of its own is turned into a landmark directly. This is applied to the following elements, if they don't have explicit `role` attributes: custom elements (i.e. elements with a hyphen in their names); `<div>`; `<span>`; and `<p>`.
 
 * A matching element that already has semantics of its own (i.e. a heading, form control, existing landmark region, or other semantic element) is wrapped with an element that provides the landmark region for the highlight. This allows the original semantics of the matching elements to remain.
+
+* A matching element that is already a landmark region will simply have its name prepended with "(Highlight _n_)". Given that it's already a landmark, it's already highlighted in that sense, and _not_ wrapping it reduces the chances that the page layout will be broken.
 
 Because the second method might affect the visual styling of the page (and potentially the functionality, in expectedly extremely rare cases) it is used only when necessary. However, there is an option provided to allow you to always use the second option, if you prefer it.
 
