@@ -27,7 +27,7 @@ function isValidCss(property, proposed) {
 function showValidity(setting, validity) {
 	const element = document.getElementById(`${setting}-validity`)
 	switch (validity) {
-		case true: element.className = 'validity-valid';
+		case true: element.className = 'validity-valid'
 			break
 		case false: element.className = 'validity-invalid'
 			break

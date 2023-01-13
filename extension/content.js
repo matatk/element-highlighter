@@ -9,6 +9,227 @@ const settings = {
 	'landmarksAlwaysWrap': false
 }
 
+
+//
+// Landmarks borrowed stuff
+//
+
+// List of landmarks to navigate
+const regionTypes = Object.freeze([
+	// Core ARIA
+	'banner',
+	'complementary',
+	'contentinfo',
+	'form',           // spec says should label
+	'main',
+	'navigation',
+	'region',         // spec says must label
+	'search',
+
+	// Digital Publishing ARIA module
+	'doc-acknowledgments',
+	'doc-afterword',
+	'doc-appendix',
+	'doc-bibliography',
+	'doc-chapter',
+	'doc-conclusion',
+	'doc-credits',
+	'doc-endnotes',
+	'doc-epilogue',
+	'doc-errata',
+	'doc-foreword',
+	'doc-glossary',
+	'doc-index',         // via navigation
+	'doc-introduction',
+	'doc-pagelist',      // via navigation
+	'doc-part',
+	'doc-preface',
+	'doc-prologue',
+	'doc-toc'            // via navigation
+])
+
+// Mapping of HTML5 elements to implicit roles
+const implicitRoles = Object.freeze({
+	ASIDE:   'complementary',
+	FOOTER:  'contentinfo',    // depending on its ancestor elements
+	FORM:    'form',
+	HEADER:  'banner',         // depending on its ancestor elements
+	MAIN:    'main',
+	NAV:     'navigation',
+	SECTION: 'region'
+})
+
+// Sectioning content elements
+const sectioningContentElements = Object.freeze([
+	'ARTICLE',
+	'ASIDE',
+	'NAV',
+	'SECTION'
+])
+
+// Non-<body> sectioning root elements
+const nonBodySectioningRootElements = Object.freeze([
+	'BLOCKQUOTE',
+	'DETAILS',
+	'FIELDSET',
+	'FIGURE',
+	'TD'
+])
+
+// non-<body> sectioning elements and <main>
+const nonBodySectioningElementsAndMain = Object.freeze(
+	sectioningContentElements.concat(nonBodySectioningRootElements, 'MAIN')
+)
+
+function checkIfLandmark(element) {
+	// TODO: include these checks here? (Technically they _are_ needed for the
+	//       element to actually _be_ a landmark, but how/does this affect
+	//       people using AT to explore the page?
+	if (isVisuallyHidden(element) || isSemantiallyHidden(element)) return false
+
+	// Elements with explicitly-set rolees
+	const rawRoleValue = element.getAttribute('role')
+	const explicitRole = rawRoleValue
+		? getValidExplicitRole(rawRoleValue)
+		: null
+	const hasExplicitRole = explicitRole !== null
+
+	// Support HTML5 elements' native roles
+	const role = explicitRole ?? getRoleFromTagNameAndContainment(element)
+
+	// TODO: Could make this more efficient if ignoring the label content.
+	// The element may or may not have a label
+	const label = getARIAProvidedLabel(element)
+
+	// Add the element if it should be considered a landmark
+	if (role && isLandmark(role, hasExplicitRole, label)) {
+		return true
+	}
+
+	return false
+}
+
+// This can only check an element's direct styles. We just stop recursing
+// into elements that are hidden. That's why the heuristics don't call this
+// function (they don't check all of a guessed landmark's parent elements).
+function isVisuallyHidden(element) {
+	if (element.hasAttribute('hidden')) return true
+
+	const style = window.getComputedStyle(element)
+	if (style.visibility === 'hidden' || style.display === 'none') {
+		return true
+	}
+
+	return false
+}
+
+function isSemantiallyHidden(element) {
+	if (element.getAttribute('aria-hidden') === 'true'
+		|| element.hasAttribute('inert')) {
+		return true
+	}
+	return false
+}
+
+function getRoleFromTagNameAndContainment(element) {
+	const name = element.tagName
+	let role = null
+
+	if (name) {
+		// eslint-disable-next-line no-prototype-builtins
+		if (implicitRoles.hasOwnProperty(name)) {
+			role = implicitRoles[name]
+		}
+
+		// <header> and <footer> elements have some containment-
+		// related constraints on whether they're counted as landmarks
+		if (name === 'HEADER' || name === 'FOOTER') {
+			if (!isChildOfTopLevelSection(element)) {
+				role = null
+			}
+		}
+	}
+
+	return role
+}
+
+function isChildOfTopLevelSection(element) {
+	let ancestor = element.parentNode
+
+	while (ancestor !== null) {
+		if (nonBodySectioningElementsAndMain.includes(ancestor.tagName)) {
+			return false
+		}
+		ancestor = ancestor.parentNode
+	}
+
+	return true
+}
+
+function getValidExplicitRole(value) {
+	if (value) {
+		if (value.indexOf(' ') >= 0) {
+			const roles = value.split(' ')
+			for (const role of roles) {
+				if (regionTypes.includes(role)) {
+					return role
+				}
+			}
+		} else if (regionTypes.includes(value)) {
+			return value
+		}
+	}
+	return null
+}
+
+function getARIAProvidedLabel(element) {
+	let label = null
+
+	// TODO general whitespace test?
+	// TODO if some IDs don't exist, this will include nulls - test?
+	const idRefs = element.getAttribute('aria-labelledby')
+	if (idRefs !== null && idRefs.length > 0) {
+		const innerTexts = Array.from(idRefs.split(' '), idRef => {
+			const labelElement = document.getElementById(idRef)
+			return getInnerText(labelElement)
+		})
+		label = innerTexts.join(' ')
+	}
+
+	if (label === null) {
+		label = element.getAttribute('aria-label')
+	}
+
+	return label
+}
+
+function getInnerText(element) {
+	let text = null
+
+	if (element) {
+		text = element.innerText
+		if (text === undefined) {
+			text = element.textContent
+		}
+	}
+
+	return text
+}
+
+function isLandmark(role, explicitRole, label) {
+	// <section> and <form> are only landmarks when labelled.
+	// <div role="form"> is always a landmark.
+	if (role === 'region' || (role === 'form' && !explicitRole)) {
+		return label !== null
+	}
+	return true  // already a valid role if we were called
+}
+
+
+//
+// Content script stuff
+//
+
 const states = Object.freeze({
 	startup: 'Paused on page load',
 	observing: 'Monitoring',
@@ -17,7 +238,14 @@ const states = Object.freeze({
 	manual: 'Manual activation'
 })
 
+const markerTypes = Object.freeze({
+	direct: 'direct',
+	existing: 'existing',
+	wrapper: 'wrapper'
+})
+
 const LANDMARK_MARKER = 'data-element-highlighter-landmark'
+const ORIG_ARIA_LABEL = 'data-original-aria-label'
 const STARTUP_GRACE_TIME = 2e3
 const MUTATION_IGNORE_TIME = 2e3
 const gHighlighted = new Map()  // elmnt : { outline: str, landmark: elmnt }
@@ -186,14 +414,13 @@ function removeHighlightsExceptFor(matches = new Set()) {
 	for (const [element, info] of gHighlighted) {
 		if (matches.has(element)) continue
 
-		if (document.body.contains(element)) {
-			element.style.outline = info.outline ?? ''
-			element.style.boxShadow = info.boxShadow ?? ''
-			if (element.getAttribute('style') === '') {
-				element.removeAttribute('style')
-			}
-		} else {
-			element.remove()
+		// NOTE: Not checking if the element is contained in the <body>,
+		//       because removing it breaks some apps (e.g. maybe it's a dialog
+		//       that can be shown/hidden).
+		element.style.outline = info.outline ?? ''
+		element.style.boxShadow = info.boxShadow ?? ''
+		if (element.getAttribute('style') === '') {
+			element.removeAttribute('style')
 		}
 
 		gHighlighted.delete(element)
@@ -210,26 +437,36 @@ function highlight(elements) {
 		const boxShadow = element.style.boxShadow
 		if (gCached.boxShadow) element.style.boxShadow = gCached.boxShadow
 
-		const landmark = null
+		const landmark = null  // FIXME: neaten?
 		gHighlighted.set(element, { outline, boxShadow, landmark })
 	}
 }
 
 function removeAllLandmarks() {
 	if (!gLandmarks) return
-	// The landmark should be the element's parent, but other code running on
-	// the page could've moved things around, so we store references to both.
+
+	// NOTE: Not checking if the element is contained in the <body>, because
+	//       removing it breaks some apps (e.g. maybe it's a dialog that can be
+	//       shown/hidden).
 	for (const info of gHighlighted.values()) {
-		if (info.landmark) {
-			if (document.body.contains(info.landmark)) {
-				if (info.landmark.getAttribute(LANDMARK_MARKER) === 'wrapper') {
-					info.landmark.replaceWith(...info.landmark.childNodes)
-				} else {
-					removeLandmarkProperties(info.landmark)
-				}
-			} else {
-				info.landmark.remove()
+		const landmark = info.landmark
+		if (landmark) {
+			const type = landmark.getAttribute(LANDMARK_MARKER)
+			switch (type) {
+				case markerTypes.wrapper:
+					landmark.replaceWith(...landmark.childNodes)
+					break
+				case markerTypes.direct:
+					removeLandmarkProperties(landmark)
+					break
+				case markerTypes.existing:
+					removeLandmarkPropertiesFromExistingLandmark(landmark)
+					break
+				default:
+					console.error(landmark)
+					throw Error(`Unknown marker type: ${type}`)
 			}
+			info.landmark = null
 		}
 	}
 }
@@ -238,15 +475,19 @@ function addAllLandmarks() {
 	if (!gLandmarks) return
 
 	for (const [element, info] of gHighlighted) {
-		if (gLandmarksAlwaysWrap || hasRole(element)) {
+		if (gLandmarksAlwaysWrap
+			|| (hasRole(element) && !checkIfLandmark(element))) {
 			const wrapper = document.createElement('div')
 			addLandmarkProperties(wrapper, true)
-
 			element.parentElement.insertBefore(wrapper, element)
 			wrapper.appendChild(element)
 			info.landmark = wrapper
 		} else {
-			addLandmarkProperties(element, false)
+			if (checkIfLandmark(element)) {
+				addLandmarkPropertiesToExistingLandmark(element)
+			} else {
+				addLandmarkProperties(element, false)
+			}
 			info.landmark = element
 		}
 	}
@@ -260,17 +501,51 @@ function hasRole(element) {
 	return false
 }
 
-function addLandmarkProperties(element, wrapper) {
+function addLandmarkProperties(element, isWrapper) {
 	element.setAttribute('role', 'region')
 	element.setAttribute('aria-roledescription', 'Highlight')
 	element.setAttribute('aria-label', ++gHighlightLandmarkCounter)
-	element.setAttribute(LANDMARK_MARKER, wrapper ? 'wrapper' : 'direct')
+	setMarker(element, isWrapper ? markerTypes.wrapper : markerTypes.direct)
+}
+
+function addLandmarkPropertiesToExistingLandmark(element) {
+	gHighlightLandmarkCounter += 1
+	const prelude = `(Highlight ${gHighlightLandmarkCounter})`
+	const label = getARIAProvidedLabel(element)  // FIXME: double-call
+	if (element.hasAttribute('aria-label')) {
+		element.setAttribute(ORIG_ARIA_LABEL,
+			element.getAttribute('aria-label'))
+	}
+	if (label) {
+		element.setAttribute('aria-label', prelude + ' ' + label)
+	} else {
+		element.setAttribute('aria-label', prelude)
+	}
+	setMarker(element, 'existing')
+}
+
+function setMarker(element, type) {
+	// eslint-disable-next-line no-prototype-builtins
+	if (!markerTypes.hasOwnProperty(type)) {
+		throw Error(`Unknown marker type: ${type}`)
+	}
+	element.setAttribute(LANDMARK_MARKER, markerTypes[type])
 }
 
 function removeLandmarkProperties(element) {
 	element.removeAttribute('role')
 	element.removeAttribute('aria-roledescription')
 	element.removeAttribute('aria-label')
+	element.removeAttribute(LANDMARK_MARKER)
+}
+
+function removeLandmarkPropertiesFromExistingLandmark(element) {
+	if (element.hasAttribute(ORIG_ARIA_LABEL)) {
+		element.setAttribute('aria-label', element.getAttribute(ORIG_ARIA_LABEL))
+		element.removeAttribute(ORIG_ARIA_LABEL)
+	} else {
+		element.removeAttribute('aria-label')
+	}
 	element.removeAttribute(LANDMARK_MARKER)
 }
 
@@ -321,7 +596,7 @@ chrome.storage.onChanged.addListener((changes) => {
 				if (setting === 'landmarks') {
 					gLandmarks = changes.landmarks.newValue
 				} else {
-					gLandmarksAlwaysWrap = changes[setting].newValue
+					gLandmarksAlwaysWrap = changes.landmarksAlwaysWrap.newValue
 				}
 				if (gLandmarks) locateAndhighlight(false)
 				break
