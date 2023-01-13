@@ -1,69 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="UTF-8">
-		<title></title>
-		<link rel="stylesheet" href="popup.css">
-	</head>
-	<body>
+<head>
+	<meta charset="UTF-8">
+	<title></title>
+	<link rel="stylesheet" href="popup.css">
+</head>
+<body>
+	<div class="gird">
 		<label for="locator">Selector or XPath</label>
-		<div class="input-and-validity">
-			<input id="locator" aria-describedby="description" autofocus>
-			<span id="locator-validity"></span>
-		</div>
-		<div id="description">
-			<p aria-live="polite" aria-atomic="true"><span id="matches"></span> matches</p>
-			<p><span id="runs"></span> highlight runs</p>
-			<p><span id="mutations"></span> changes</p>
-			<p id="state"></p>
-		</div>
+		<input id="locator" aria-describedby="description" autofocus>
+		<span id="locator-validity"></span>
+		<p aria-live="polite" aria-atomic="true"><span id="matches"></span> matches</p>
+		<p><span id="runs"></span> highlight runs</p>
+		<p><span id="mutations"></span> changes</p>
+		<p id="state"></p>
 
-		<div class="tick">
-			<input type="checkbox" id="monitor">
-			<label for="monitor">Monitor page changes</label>
-		</div>
+		<div class="new-section"></div>
 
-		<div class="tick">
-			<input type="checkbox" id="landmarks">
-			<label for="landmarks">Add landmark regions</label>
-		</div>
+		<input type="checkbox" id="monitor">
+		<label for="monitor">Monitor page changes</label>
 
-		<div class="tick">
-			<input type="checkbox" id="landmarksAlwaysWrap">
-			<label for="landmarksAlwaysWrap">Always make landmark wrappers</label>
-		</div>
+		<input type="checkbox" id="landmarks">
+		<label for="landmarks">Add landmark regions</label>
+
+		<input type="checkbox" id="landmarksAlwaysWrap">
+		<label for="landmarksAlwaysWrap">Always make landmark wrappers</label>
+
+		<div class="new-section"></div>
 
 		<label for="outline">Outline</label>
-		<div class="input-and-validity">
-			<input id="outline">
-			<span id="outline-validity"></span>
-		</div>
+		<input type="checkbox" id="drawOutline" aria-label="Draw outline">
+		<input id="outline">
+		<span id="outline-validity"></span>
 
 		<label for="boxShadow">Box shadow</label>
-		<div class="input-and-validity">
-			<input id="boxShadow">
-			<span id="boxShadow-validity"></span>
-		</div>
+		<input type="checkbox" id="drawBoxShadow" aria-label="Draw box shadow">
+		<input id="boxShadow">
+		<span id="boxShadow-validity"></span>
 
-		<div class="tick">
-			<input type="checkbox" id="tint">
-			<label for="tint">Tint matches</label>
-		</div>
+		<label id="color-label" for="color">Tint colour</label>
+		<label id="opacity-label" for="opacity">Opacity</label>
+		<input type="checkbox" id="drawTint" aria-label="Draw tint">
+		<input id="color" size="8">
+		<span id="color-validity"></span>
+		<input id="opacity" size="4">
+		<span id="opacity-validity"></span>
 
-		<label for="color">Tint colour</label>
-		<div class="input-and-validity">
-			<input id="color">
-			<span id="color-validity"></span>
-		</div>
-
-		<label for="opacity">Tint opacity</label>
-		<div class="input-and-validity">
-			<input id="opacity">
-			<span id="opacity-validity"></span>
-		</div>
+		<div class="new-section"></div>
 
 		<button id="reset">Reset to defaults</button>
 		<button id="help">Help</button>
-		<script src="popup.js"></script>
-	</body>
+	</div>
+
+	<script src="popup.js"></script>
+</body>
 </html>

@@ -2,14 +2,16 @@
 // NOTE: Also in content.js
 const settings = {
 	'locator': null,
+	'drawOutline': true,
 	'outline': '2px solid orange',
+	'drawBoxShadow': true,
 	'boxShadow': 'inset 0 0 0 2px orange',
+	'drawTint': false,
+	'color': 'orange',
+	'opacity': '25%',
 	'monitor': true,
 	'landmarks': false,
-	'landmarksAlwaysWrap': false,
-	'tint': false,
-	'color': 'orange',
-	'opacity': '25%'
+	'landmarksAlwaysWrap': false
 }
 
 const cssSettings = ['outline', 'boxShadow', 'color', 'opacity']
@@ -21,10 +23,10 @@ const withActiveTab = func => chrome.tabs.query(
 	{ active: true, currentWindow: true }, tabs => func(tabs[0]))
 
 function isValidCss(property, proposed) {
-	if (proposed === '') return null
+	if (proposed === '') return false
 	const test = document.createElement('div')
 	test.style[property] = proposed
-	const valid = test.style[property] !== ''
+	const valid = test.style[property] !== ''  // NOTE: Good enough, prob :-)
 	test.remove()
 	return valid
 }
@@ -35,8 +37,6 @@ function showValidity(setting, validity) {
 		case true: element.className = 'validity-valid'
 			break
 		case false: element.className = 'validity-invalid'
-			break
-		case null: element.className = 'validity-empty'
 			break
 		default: throw Error(`Unexpected validity: "${validity}"`)
 	}
@@ -101,12 +101,12 @@ document.getElementById('reset').addEventListener('click', () => {
 	for (const [setting, value] of Object.entries(settings)) {
 		if (setting === 'locator') continue
 		const input = document.getElementById(setting)
-		if (typeof settings[setting] === 'boolean') {
+		if (typeof value === 'boolean') {
 			input.checked = value
 		} else {
 			input.value = value
-			input.dispatchEvent(new Event('change'))
 		}
+		input.dispatchEvent(new Event('change'))
 	}
 })
 

@@ -2,14 +2,16 @@
 // NOTE: Also in popup.js
 const settings = {
 	'locator': null,
+	'drawOutline': true,
 	'outline': '2px solid orange',
+	'drawBoxShadow': true,
 	'boxShadow': 'inset 0 0 0 2px orange',
+	'drawTint': false,
+	'color': 'orange',
+	'opacity': '25%',
 	'monitor': true,
 	'landmarks': false,
-	'landmarksAlwaysWrap': false,
-	'tint': false,
-	'color': 'orange',
-	'opacity': '25%'
+	'landmarksAlwaysWrap': false
 }
 
 
@@ -252,20 +254,9 @@ const HIGHLIGHT_MARKER = 'data-element-highlighter-highlight'
 const ORIG_ARIA_LABEL = 'data-original-aria-label'
 const STARTUP_GRACE_TIME = 2e3
 const MUTATION_IGNORE_TIME = 2e3
-const gHighlighted = new Map()  // elmnt : { outline: str, landmark: elmnt }
+const gHighlights = new Map()  // elmnt : { outline: str, landmark: elmnt }
 
-const gCached = {
-	outline: null,
-	boxShadow: null,
-	locator: null
-}
-
-let gLandmarks = null
-let gLandmarksAlwaysWrap = null
-let gDoTint = null
-let gTintColour = null
-let gTintOpacity = null
-
+const gCached = {}
 let gState = null
 let gValidLocator = true
 let gMatchCounter = 0
@@ -356,8 +347,8 @@ function locateAndhighlight(incrementRunCounter) {
 		}
 	}
 
-	removeHighlightsExceptFor(foundElements)
-	highlight(foundElements)
+	removeVisualHighlightsExceptFrom(foundElements)
+	addVisualHighlights(foundElements)
 	addAllLandmarks()
 
 	if (gState !== states.manual) {
@@ -420,8 +411,41 @@ function evaluatePathAndSetValidity() {
 	return nodeList
 }
 
-function removeHighlightsExceptFor(matches = new Set()) {
-	for (const [element, info] of gHighlighted) {
+function addVisualHighlights(elements) {
+	for (const element of elements) {
+		if (gHighlights.has(element)) continue
+
+		// Save current property values first
+		const outline = element.style.outline
+		if (gCached.drawOutline && gCached.outline) {
+			element.style.outline = gCached.outline
+		}
+		const boxShadow = element.style.boxShadow
+		if (gCached.drawBoxShadow && gCached.boxShadow) {
+			element.style.boxShadow = gCached.boxShadow
+		}
+
+		const tint = gCached.drawTint ? document.createElement('div') : null
+		if (tint) {
+			const rect = element.getBoundingClientRect()
+			tint.style.position = 'absolute'
+			tint.style.top = window.scrollY + rect.top + 'px'
+			tint.style.left = window.scrollX + rect.left + 'px'
+			tint.style.width = rect.width + 'px'
+			tint.style.height = rect.height + 'px'
+			tint.style.backgroundColor = gCached.color
+			tint.style.opacity = gCached.opacity
+			tint.style.pointerEvents = 'none'
+			tint.setAttribute(HIGHLIGHT_MARKER, '')
+			document.body.appendChild(tint)
+		}
+
+		gHighlights.set(element, { outline, boxShadow, tint, landmark: null })
+	}
+}
+
+function removeVisualHighlightsExceptFrom(matches = new Set()) {
+	for (const [element, info] of gHighlights) {
 		if (matches.has(element)) continue
 
 		// NOTE: Not checking if the element is contained in the <body>,
@@ -433,49 +457,42 @@ function removeHighlightsExceptFor(matches = new Set()) {
 			element.removeAttribute('style')
 		}
 
-		if (info.highlight) info.highlight.remove()
+		if (info.tint) info.tint.remove()
 
-		gHighlighted.delete(element)
+		gHighlights.delete(element)
 	}
 }
 
-function highlight(elements) {
-	for (const element of elements) {
-		if (gHighlighted.has(element)) continue
+// NOTE: Must be called _after_ visual highlights are added.
+function addAllLandmarks() {
+	if (!gCached.landmarks) return
 
-		// Save current property values first
-		const outline = element.style.outline
-		if (gCached.outline) element.style.outline = gCached.outline
-		const boxShadow = element.style.boxShadow
-		if (gCached.boxShadow) element.style.boxShadow = gCached.boxShadow
-
-		const highlight = gDoTint ? document.createElement('div') : null
-		if (highlight) {
-			const rect = element.getBoundingClientRect()
-			highlight.style.position = 'absolute'
-			highlight.style.top = window.scrollY + rect.top + 'px'
-			highlight.style.left = window.scrollX + rect.left + 'px'
-			highlight.style.width = rect.width + 'px'
-			highlight.style.height = rect.height + 'px'
-			highlight.style.backgroundColor = gTintColour
-			highlight.style.opacity = gTintOpacity
-			highlight.style.pointerEvents = 'none'
-			highlight.setAttribute(HIGHLIGHT_MARKER, '')
-			document.body.appendChild(highlight)
+	for (const [element, info] of gHighlights) {
+		if (gCached.landmarksAlwaysWrap
+			|| (hasRole(element) && !checkIfLandmark(element))) {
+			const wrapper = document.createElement('div')
+			addLandmarkProperties(wrapper, true)
+			element.parentElement.insertBefore(wrapper, element)
+			wrapper.appendChild(element)
+			info.landmark = wrapper
+		} else {
+			if (checkIfLandmark(element)) {
+				addLandmarkPropertiesToExistingLandmark(element)
+			} else {
+				addLandmarkProperties(element, false)
+			}
+			info.landmark = element
 		}
-
-		const landmark = null  // FIXME: neaten?
-		gHighlighted.set(element, { outline, boxShadow, highlight, landmark })
 	}
 }
 
 function removeAllLandmarks() {
-	if (!gLandmarks) return
+	if (!gCached.landmarks) return
 
 	// NOTE: Not checking if the element is contained in the <body>, because
 	//       removing it breaks some apps (e.g. maybe it's a dialog that can be
 	//       shown/hidden).
-	for (const info of gHighlighted.values()) {
+	for (const info of gHighlights.values()) {
 		const landmark = info.landmark
 		if (landmark) {
 			const type = landmark.getAttribute(LANDMARK_MARKER)
@@ -494,28 +511,6 @@ function removeAllLandmarks() {
 					throw Error(`Unknown marker type: ${type}`)
 			}
 			info.landmark = null
-		}
-	}
-}
-
-function addAllLandmarks() {
-	if (!gLandmarks) return
-
-	for (const [element, info] of gHighlighted) {
-		if (gLandmarksAlwaysWrap
-			|| (hasRole(element) && !checkIfLandmark(element))) {
-			const wrapper = document.createElement('div')
-			addLandmarkProperties(wrapper, true)
-			element.parentElement.insertBefore(wrapper, element)
-			wrapper.appendChild(element)
-			info.landmark = wrapper
-		} else {
-			if (checkIfLandmark(element)) {
-				addLandmarkPropertiesToExistingLandmark(element)
-			} else {
-				addLandmarkProperties(element, false)
-			}
-			info.landmark = element
 		}
 	}
 }
@@ -568,7 +563,8 @@ function removeLandmarkProperties(element) {
 
 function removeLandmarkPropertiesFromExistingLandmark(element) {
 	if (element.hasAttribute(ORIG_ARIA_LABEL)) {
-		element.setAttribute('aria-label', element.getAttribute(ORIG_ARIA_LABEL))
+		element.setAttribute('aria-label',
+			element.getAttribute(ORIG_ARIA_LABEL))
 		element.removeAttribute(ORIG_ARIA_LABEL)
 	} else {
 		element.removeAttribute('aria-label')
@@ -594,19 +590,39 @@ chrome.storage.onChanged.addListener((changes) => {
 	for (const setting in changes) {
 		switch (setting) {
 			case 'locator':
-				gCached.locator = changes.locator.newValue
+				gCached[setting] = changes[setting].newValue
 				locateAndhighlight(true)
 				break
+			case 'drawOutline':
+			case 'drawBoxShadow':
 			case 'outline':
 			case 'boxShadow':
 				gCached[setting] = changes[setting].newValue
 				stopObserving()
-				for (const element of gHighlighted.keys()) {
-					element.style[setting] = gCached[setting]
+				for (const [element, info] of gHighlights) {
+					if (!gCached.drawOutline || !gCached.outline) {
+						element.style.outline = info.outline
+					} else {
+						element.style.outline = gCached.outline
+					}
+					if (!gCached.drawBoxShadow || !gCached.boxShadow) {
+						element.style.boxShadow = info.boxShadow
+					} else {
+						element.style.boxShadow = gCached.boxShadow
+					}
 				}
 				if (gState !== states.manual && gCached.locator) {
 					observeDocument()
 				}
+				break
+			case 'drawTint':
+			case 'color':
+			case 'opacity':
+				gCached[setting] = changes[setting].newValue
+				// NOTE: Have to remove all landmarks because FIXME
+				if (gCached.landmarks) removeAllLandmarks()
+				removeVisualHighlightsExceptFrom()
+				locateAndhighlight(false)
 				break
 			case 'monitor':
 				if (changes.monitor.newValue === true) {
@@ -619,30 +635,12 @@ chrome.storage.onChanged.addListener((changes) => {
 				break
 			case 'landmarks':
 			case 'landmarksAlwaysWrap':
-				if (gLandmarks) removeAllLandmarks()
-				if (setting === 'landmarks') {
-					gLandmarks = changes.landmarks.newValue
-				} else {
-					gLandmarksAlwaysWrap = changes.landmarksAlwaysWrap.newValue
-				}
-				if (gLandmarks) locateAndhighlight(false)
-				break
-			case 'tint':
-			case 'color':
-			case 'opacity':
-				// NOTE: Have to remove all landmarks because FIXME
-				if (gLandmarks) removeAllLandmarks()
-				removeHighlightsExceptFor()
-				if (setting === 'tint') {
-					gDoTint = changes.tint.newValue
-				} else if (setting === 'color') {
-					gTintColour = changes.color.newValue
-				} else {
-					gTintOpacity = changes.opacity.newValue
-				}
-				locateAndhighlight(false)
+				if (gCached.landmarks) removeAllLandmarks()
+				gCached[setting] = changes[setting].newValue
+				if (gCached.landmarks) locateAndhighlight(false)
 				break
 			default:
+				throw Error(`Unknown setting: "${setting}"`)
 		}
 	}
 })
@@ -667,14 +665,7 @@ function reflectVisibility() {
 
 function startUp() {
 	chrome.storage.sync.get(settings, items => {
-		gCached.locator = items.locator
-		gCached.outline = items.outline
-		gCached.boxShadow = items.boxShadow
-		gLandmarks = items.landmarks
-		gLandmarksAlwaysWrap = items.landmarksAlwaysWrap
-		gDoTint = items.tint
-		gTintColour = items.color
-		gTintOpacity = items.opacity
+		Object.assign(gCached, items)
 		state(items.monitor ? states.observing : states.manual)
 		locateAndhighlight(true)
 	})

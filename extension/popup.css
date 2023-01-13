@@ -1,35 +1,51 @@
-body { margin: 1em; }
+body {
+	margin: 1em;
+	width: 18em;
+}
 
-.validity-valid::before { content: "\2705"; }
+/* General layout/fonts */
+
+p { margin: 0; }
+label { font-weight: bold; }
+button { text-align: center; }  /* Firefox */
+
+.new-section { margin-top: 0.5em }
+
+/* Grid layout */
+
+.gird {
+	display: grid;
+	grid-template-columns: repeat(5, auto);
+	gap: 0.25em;
+	align-items: center;
+}
+
+label,
+p,
+button { grid-column: 1 / 6; }
+
+input[type="checkbox"] { grid-column: 1 / 2; }
+
+input[type="checkbox"] + label { grid-column: 2 / 6; }
+
+input { grid-column: 2 / 5; }
+
+#locator { grid-column: 1 / 5; }
+
+#color         { grid-column: 2 / 3; }
+#color-label   { grid-column: 1 / 3; }
+
+#opacity,
+#opacity-label { grid-column: 4 / 5; }
+
+/* Validity indicators */
+
+span[id$="validity"] {
+	justify-self: end;
+	align-self: center;
+}
+
+span[id="color-validity"] { justify-self: center; }
+
+.validity-valid::after { content: "\2705"; }
 .validity-invalid::after { content: "\274c"; }
-.validity-empty::after { content: "\2205"; }
-
-label {
-	display: block;
-	font-weight: bold;
-	margin-bottom: 0.5em;
-}
-
-* + label,
-* + button { margin-top: 1em; }
-
-.input-and-validity,
-.tick {
-	display: flex;
-	align-items: center;  /* needed for Firefox */
-	gap: 0.5em;
-}
-
-.tick input { margin: 0; }
-
-button {
-	text-align: center;  /* needed for Firefox */
-	width: 100%;         /* needed for Chrome */
-}
-
-p:last-child { margin-bottom: 0; }
-
-#description { margin-top: 0.25em; }
-#description p { margin: 0.25em; }
-
-summary { font-weight: bold; }
