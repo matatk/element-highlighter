@@ -5,11 +5,9 @@ const settings = {
 	'outline': '2px solid orange',
 	'boxShadow': 'inset 0 0 0 2px orange',
 	'monitor': true,
-	'landmarks': false
+	'landmarks': false,
+	'landmarksAlwaysWrap': false
 }
-
-const defaults =
-	(({ outline, boxShadow }) => ({ outline, boxShadow }))(settings)
 
 const simpleChangeHandler =
 	(input, func) => input.addEventListener('change', func)
@@ -95,10 +93,14 @@ chrome.runtime.onMessage.addListener(message => {
 })
 
 document.getElementById('reset').addEventListener('click', () => {
-	for (const [setting, value] of Object.entries(defaults)) {
+	for (const [setting, value] of Object.entries(settings)) {
 		const input = document.getElementById(setting)
-		input.value = value
-		input.dispatchEvent(new Event('change'))
+		if (typeof settings[setting] === 'boolean') {
+			input.checked = value
+		} else {
+			input.value = value
+			input.dispatchEvent(new Event('change'))
+		}
 	}
 })
 

@@ -5,7 +5,8 @@ const settings = {
 	'outline': '2px solid orange',
 	'boxShadow': 'inset 0 0 0 2px orange',
 	'monitor': true,
-	'landmarks': false
+	'landmarks': false,
+	'landmarksAlwaysWrap': false
 }
 
 const states = Object.freeze({
@@ -16,7 +17,7 @@ const states = Object.freeze({
 	manual: 'Manual activation'
 })
 
-const LANDMARK_MARKER_ATTR = 'data-element-highlighter-landmark'
+const LANDMARK_MARKER = 'data-element-highlighter-landmark'
 const STARTUP_GRACE_TIME = 2e3
 const MUTATION_IGNORE_TIME = 2e3
 const gHighlighted = new Map()  // elmnt : { outline: str, landmark: elmnt }
@@ -27,22 +28,20 @@ const gCached = {
 	locator: null
 }
 
-let gValidLocator = true
-
 let gLandmarks = null
-let gState = null
+let gLandmarksAlwaysWrap = null
 
+let gState = null
+let gValidLocator = true
 let gMatchCounter = 0
 let gHighlightLandmarkCounter = 0
 let gMutationCounter = 0
 let gRunCounter = 0
-
 let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
 
 // Mutation observation
 
-// TODO: Actually stop observing for two seconds?
 const gObserver = new MutationObserver(() => {
 	chrome.runtime.sendMessage({ name: 'mutations', data: ++gMutationCounter })
 	const now = Date.now()
@@ -110,7 +109,7 @@ function locateAndhighlight(incrementRunCounter) {
 
 		if (gValidLocator) {
 			for (const match of nodeList) {
-				if (!match.hasAttribute(LANDMARK_MARKER_ATTR)) {
+				if (!match.hasAttribute(LANDMARK_MARKER)) {
 					foundElements.add(match)
 				}
 			}
@@ -223,7 +222,11 @@ function removeAllLandmarks() {
 	for (const info of gHighlighted.values()) {
 		if (info.landmark) {
 			if (document.body.contains(info.landmark)) {
-				info.landmark.replaceWith(...info.landmark.childNodes)
+				if (info.landmark.getAttribute(LANDMARK_MARKER) === 'wrapper') {
+					info.landmark.replaceWith(...info.landmark.childNodes)
+				} else {
+					removeLandmarkProperties(info.landmark)
+				}
 			} else {
 				info.landmark.remove()
 			}
@@ -235,16 +238,40 @@ function addAllLandmarks() {
 	if (!gLandmarks) return
 
 	for (const [element, info] of gHighlighted) {
-		const wrapper = document.createElement('DIV')
-		wrapper.setAttribute('role', 'region')
-		wrapper.setAttribute('aria-roledescription', 'Highlight')
-		wrapper.setAttribute('aria-label', ++gHighlightLandmarkCounter)
-		wrapper.setAttribute(LANDMARK_MARKER_ATTR, '')
+		if (gLandmarksAlwaysWrap || hasRole(element)) {
+			const wrapper = document.createElement('div')
+			addLandmarkProperties(wrapper, true)
 
-		element.parentElement.insertBefore(wrapper, element)
-		wrapper.appendChild(element)
-		info.landmark = wrapper
+			element.parentElement.insertBefore(wrapper, element)
+			wrapper.appendChild(element)
+			info.landmark = wrapper
+		} else {
+			addLandmarkProperties(element, false)
+			info.landmark = element
+		}
 	}
+}
+
+function hasRole(element) {
+	const names = [ 'div', 'span', 'p' ]
+	if (!element.tagName.includes('-') &&
+		!names.includes(element.tagName.toLowerCase())) return true
+	if (element.hasAttribute('role')) return true
+	return false
+}
+
+function addLandmarkProperties(element, wrapper) {
+	element.setAttribute('role', 'region')
+	element.setAttribute('aria-roledescription', 'Highlight')
+	element.setAttribute('aria-label', ++gHighlightLandmarkCounter)
+	element.setAttribute(LANDMARK_MARKER, wrapper ? 'wrapper' : 'direct')
+}
+
+function removeLandmarkProperties(element) {
+	element.removeAttribute('role')
+	element.removeAttribute('aria-roledescription')
+	element.removeAttribute('aria-label')
+	element.removeAttribute(LANDMARK_MARKER)
 }
 
 function sendInfo(includeLocatorValidity) {
@@ -289,8 +316,13 @@ chrome.storage.onChanged.addListener((changes) => {
 				}
 				break
 			case 'landmarks':
+			case 'landmarksAlwaysWrap':
 				if (gLandmarks) removeAllLandmarks()
-				gLandmarks = changes.landmarks.newValue
+				if (setting === 'landmarks') {
+					gLandmarks = changes.landmarks.newValue
+				} else {
+					gLandmarksAlwaysWrap = changes[setting].newValue
+				}
 				if (gLandmarks) locateAndhighlight(false)
 				break
 			default:
@@ -322,6 +354,7 @@ function startUp() {
 		gCached.outline = items.outline
 		gCached.boxShadow = items.boxShadow
 		gLandmarks = items.landmarks
+		gLandmarksAlwaysWrap = items.landmarksAlwaysWrap
 		state(items.monitor ? states.observing : states.manual)
 		locateAndhighlight(true)
 	})
