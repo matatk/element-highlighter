@@ -6,8 +6,13 @@ const settings = {
 	'boxShadow': 'inset 0 0 0 2px orange',
 	'monitor': true,
 	'landmarks': false,
-	'landmarksAlwaysWrap': false
+	'landmarksAlwaysWrap': false,
+	'tint': false,
+	'color': 'orange',
+	'opacity': '25%'
 }
+
+const cssSettings = ['outline', 'boxShadow', 'color', 'opacity']
 
 const simpleChangeHandler =
 	(input, func) => input.addEventListener('change', func)
@@ -48,7 +53,7 @@ chrome.storage.sync.get(settings, items => {
 			simpleChangeHandler(control, event => {
 				chrome.storage.sync.set({ [setting]: event.target.checked })
 			})
-		} else if (setting === 'outline' || setting === 'boxShadow') {
+		} else if (cssSettings.includes(setting)) {
 			control.value = items[setting]
 
 			showValidity(setting, isValidCss(setting, control.value))
