@@ -267,7 +267,7 @@ let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
 let gPopupOpen = false
 
-// NOTE: Need to check popup is open before calling
+// NOTE: Callers need to check document is visible, and whether popup is open
 function send(name, data) {
 	chrome.runtime.sendMessage({ name, data }, function() {
 		if (chrome.runtime.lastError) {
@@ -282,7 +282,8 @@ function send(name, data) {
 // Mutation observation
 
 const gObserver = new MutationObserver(() => {
-	if (gPopupOpen) send('mutations', ++gMutationCounter)
+	gMutationCounter++
+	if (!document.hidden && gPopupOpen) send('mutations', gMutationCounter)
 	const now = Date.now()
 	if (now > gLastMutationTime + MUTATION_IGNORE_TIME) {
 		runDueToMutation(now)
@@ -372,7 +373,7 @@ function locateAndhighlight(incrementRunCounter) {
 		}
 	}
 
-	sendInfo(true)
+	sendInfo()
 }
 
 // NOTE: Assumes we have already checked that we have an XPath as locator.
@@ -585,15 +586,13 @@ function removeLandmarkPropertiesFromExistingLandmark(element) {
 	element.removeAttribute(LANDMARK_MARKER)
 }
 
-function sendInfo(includeLocatorValidity) {
+function sendInfo() {
 	send('matches', gMatchCounter)
-	if (!gPopupOpen) return
+	if (document.hidden || !gPopupOpen) return
 	send('mutations', gMutationCounter)
 	send('runs', gRunCounter)
 	send('state', gState)
-	if (includeLocatorValidity) {
-		send('locator-validity', gValidLocator)
-	}
+	send('locator-validity', gValidLocator)  // assume true on start-up
 }
 
 // Event handlers
@@ -662,34 +661,44 @@ chrome.storage.onChanged.addListener((changes) => {
 	}
 })
 
-chrome.runtime.onMessage.addListener(message => {
+function generalMessageHandler(message) {
 	switch (message.name) {
 		case 'popup-open':
 			gPopupOpen = message.data
-			sendInfo(true)
+			if (gPopupOpen) sendInfo()
 			break
 		case 'get-info':
-			sendInfo(true)
+			sendInfo()
 			break
 		case 'run':
 			if (gState === states.manual) locateAndhighlight(true)
 			break
-		default:
-			throw Error(`Unknown message: ${message.name}`)
 	}
-})
+}
 
 function reflectVisibility() {
-	if (document.hidden) {
-		stopObservingAndUnScheduleRun()
-	} else {
-		startUp()
-	}
+	// In Firefox, the pop-up may be open when we switch between pages.
+	// NOTE: We have not been listening to these messages whilst invisible, so
+	//       we ask the background script to update us.
+	chrome.runtime.sendMessage({ name: 'popup-open' }, response => {
+		if (chrome.runtime.lastError) {
+			throw Error(chrome.runtime.lastError.message)
+		}
+		gPopupOpen = response.data
+
+		if (document.hidden) {
+			stopObservingAndUnScheduleRun()
+			chrome.runtime.onMessage.removeListener(generalMessageHandler)
+		} else {
+			chrome.runtime.onMessage.addListener(generalMessageHandler)
+			startUpOrResume()
+		}
+	})
 }
 
 // Bootstrapping and state
 
-function startUp() {
+function startUpOrResume() {
 	chrome.storage.sync.get(settings, items => {
 		Object.assign(gCached, items)
 		state(items.monitor ? states.observing : states.manual)
@@ -699,7 +708,7 @@ function startUp() {
 
 function state(newState) {
 	gState = newState
-	if (gPopupOpen) send('state', newState)
+	if (!document.hidden && gPopupOpen) send('state', newState)
 }
 
 document.addEventListener('visibilitychange', reflectVisibility)
@@ -707,6 +716,8 @@ document.addEventListener('visibilitychange', reflectVisibility)
 // Firefox auto-injects content scripts
 if (!document.hidden) {
 	state(states.startup)
-	sendInfo(false)  // set badge text; update pop-up info if it's open
-	setTimeout(startUp, STARTUP_GRACE_TIME)
+	sendInfo()  // set badge text; update pop-up info if it's open
+	setTimeout(() => {
+		if (!document.hidden) startUpOrResume()
+	}, STARTUP_GRACE_TIME)
 }

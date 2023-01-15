@@ -81,12 +81,19 @@ document.getElementById('locator').addEventListener('keydown', event => {
 	}
 })
 
-chrome.runtime.onMessage.addListener(message => {
+chrome.runtime.onMessage.addListener((message, sender) => {
 	switch (message.name) {
 		case 'mutations':
 		case 'runs':
-		case 'matches':
 			document.getElementById(message.name).innerText = message.data
+			break
+		case 'matches':
+			// TODO: Rewrite as sync, with fallthrough, in MV3.
+			withActiveTab(tab => {
+				if (tab.id === sender.tab.id) {
+					document.getElementById(message.name).innerText = message.data
+				}
+			})
 			break
 		case 'state':
 			document.getElementById('state').innerText = message.data
