@@ -99,6 +99,7 @@ chrome.runtime.onMessage.addListener(message => {
 
 document.getElementById('reset').addEventListener('click', () => {
 	for (const [setting, value] of Object.entries(settings)) {
+		if (setting === 'locator') continue
 		const input = document.getElementById(setting)
 		if (typeof settings[setting] === 'boolean') {
 			input.checked = value
