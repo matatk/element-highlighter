@@ -1,6 +1,14 @@
 {
   "extends": "stylelint-config-standard",
   "rules": {
+    "block-opening-brace-space-before": [
+      "always",
+      {
+        "ignoreSelectors": [
+          "#color"
+        ]
+      }
+    ],
     "indentation": "tab"
   }
 }

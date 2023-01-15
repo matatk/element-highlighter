@@ -9,7 +9,7 @@ p { margin: 0; }
 label { font-weight: bold; }
 button { text-align: center; }  /* Firefox */
 
-.new-section { margin-top: 0.5em }
+.new-section { margin-top: 0.5em; }
 
 /* Grid layout */
 
@@ -32,8 +32,8 @@ input { grid-column: 2 / 5; }
 
 #locator { grid-column: 1 / 5; }
 
-#color         { grid-column: 2 / 3; }
-#color-label   { grid-column: 1 / 3; }
+#color       { grid-column: 2 / 3; }
+#color-label { grid-column: 1 / 3; }
 
 #opacity,
 #opacity-label { grid-column: 4 / 5; }
