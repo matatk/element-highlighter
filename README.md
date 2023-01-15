@@ -35,6 +35,8 @@ In the pop-up, you can also toggle whether the page is automatically monitored f
 
 All settings are saved across browser restarts. A button is provided to reset everything to the defaults (it leaves your selector/XPath alone, though).
 
+The browser toolbar button is badged with the number of matches found (if there are any—if there are no matches, the badge is removed).
+
 ### Change monitoring
 
 By default, whilst a query exists in the "Selector or XPath" input box, the page will be re-queried on any DOM change (this uses a [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) behind the scenes). However, if there are subsequent changes to the DOM within a two-second window, they will be ignored, and the page will be re-queried at the end of a further two-second window. This is intended to mitigate most performance concerns during active use. Some pages (often web apps or games) change a lot, though, so the option is provided to change monitoring off.

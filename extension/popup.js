@@ -19,6 +19,7 @@ const cssSettings = ['outline', 'boxShadow', 'color', 'opacity']
 const simpleChangeHandler =
 	(input, func) => input.addEventListener('change', func)
 
+// FIXME: DRY with background.js
 const withActiveTab = func => chrome.tabs.query(
 	{ active: true, currentWindow: true }, tabs => func(tabs[0]))
 
@@ -124,3 +125,5 @@ withActiveTab(tab => {
 		}
 	}
 })
+
+chrome.runtime.connect({ name: 'popup' })

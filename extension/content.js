@@ -265,11 +265,16 @@ let gMutationCounter = 0
 let gRunCounter = 0
 let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
+let gPopupOpen = false
 
-function checkedSend(name, data) {
+// NOTE: Need to check popup is open before calling
+function send(name, data) {
 	chrome.runtime.sendMessage({ name, data }, function() {
 		if (chrome.runtime.lastError) {
-			console.log('Probably not important:', chrome.runtime.lastError.message)
+			// NOTE: Was printing the message to console, but got loads of
+			//       notices about the port closing before a response could be
+			//       received, in Chrome. This doesn't seem to make sense, as
+			//       the port is betwixt the poup and background script.
 		}
 	})
 }
@@ -277,7 +282,7 @@ function checkedSend(name, data) {
 // Mutation observation
 
 const gObserver = new MutationObserver(() => {
-	checkedSend('mutations', ++gMutationCounter)
+	if (gPopupOpen) send('mutations', ++gMutationCounter)
 	const now = Date.now()
 	if (now > gLastMutationTime + MUTATION_IGNORE_TIME) {
 		runDueToMutation(now)
@@ -581,12 +586,13 @@ function removeLandmarkPropertiesFromExistingLandmark(element) {
 }
 
 function sendInfo(includeLocatorValidity) {
-	checkedSend('mutations', gMutationCounter)
-	checkedSend('runs', gRunCounter)
-	checkedSend('matches', gMatchCounter)
-	checkedSend('state', gState)
+	send('matches', gMatchCounter)
+	if (!gPopupOpen) return
+	send('mutations', gMutationCounter)
+	send('runs', gRunCounter)
+	send('state', gState)
 	if (includeLocatorValidity) {
-		checkedSend('locator-validity', gValidLocator)
+		send('locator-validity', gValidLocator)
 	}
 }
 
@@ -654,11 +660,15 @@ chrome.storage.onChanged.addListener((changes) => {
 
 chrome.runtime.onMessage.addListener(message => {
 	switch (message.name) {
+		case 'popup-open':
+			gPopupOpen = message.data
+			sendInfo(true)
+			break
 		case 'get-info':
 			sendInfo(true)
 			break
 		case 'run':
-			if(gState === states.manual) locateAndhighlight(true)
+			if (gState === states.manual) locateAndhighlight(true)
 			break
 		default:
 			throw Error(`Unknown message: ${message.name}`)
@@ -685,7 +695,7 @@ function startUp() {
 
 function state(newState) {
 	gState = newState
-	checkedSend('state', newState)
+	if (gPopupOpen) send('state', newState)
 }
 
 document.addEventListener('visibilitychange', reflectVisibility)
@@ -693,6 +703,6 @@ document.addEventListener('visibilitychange', reflectVisibility)
 // Firefox auto-injects content scripts
 if (!document.hidden) {
 	state(states.startup)
-	sendInfo(false)  // pop-up could be open with altered input values
+	sendInfo(false)  // pop-up could be open with different inputs; badge text
 	setTimeout(startUp, STARTUP_GRACE_TIME)
 }
