@@ -3,7 +3,7 @@ Element Highlighter
 
 **Browser extension that highlights elements that match a CSS selector or an XPath. Highlighting can be visual, or via landmark regions.**
 
-This simple browser extension highlights all elements on the page that match a selector or XPath, using a CSS outline and/or box shadow of your choice. It can also create a landmark region for each match, so that if you can't see the screen, prefer using the keyboard, or are otherwise using assistive technologies (such as a screen reader, or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/)), you can easily find the matching elements.
+This simple browser extension highlights all elements on the page that match a selector or XPath, using a CSS outline and/or box shadow of your choice, and an optional tinting overlay. It can also create a landmark region for each match, so that if you can't see the screen, prefer using the keyboard, or are otherwise using assistive technologies (such as a screen reader, or the [Landmarks extension](https://matatk.agrip.org.uk/landmarks/)), you can easily find the matching elements.
 
 Installing the extension
 ------------------------
@@ -29,11 +29,11 @@ Here are sideloading instructions for some popular browsers:
 Using the extension
 -------------------
 
-Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> on Mac) to bring up the pop-up, where you can update your selector/XPath and tweak the outline, and box shadow style.
+Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd> on Mac) to bring up the pop-up, where you can update your selector/XPath and tweak (and toggle) the outline, box shadow, and tinting overlay styles.
 
-In the pop-up, you can also toggle the checkboxes to control whether the page is automatically monitored, whether landmark regions are placed around each match, and how landmarks are added (details below).
+In the pop-up, you can also toggle whether the page is automatically monitored for changes, whether landmark regions are placed around each match, and how landmarks are added (details below).
 
-All settings are saved across browser restarts. A button is provided to reset everything to the defaults.
+All settings are saved across browser restarts. A button is provided to reset everything to the defaults (it leaves your selector/XPath alone, though).
 
 ### Change monitoring
 
@@ -55,21 +55,21 @@ There are three ways that the extension can add landmarks for matches:
 
 * A matching element that is already a landmark region will simply have its name prepended with "(Highlight _n_)". Given that it's already a landmark, it's already highlighted in that sense, and _not_ wrapping it reduces the chances that the page layout will be broken.
 
-Because the second method might affect the visual styling of the page (and potentially the functionality, in expectedly extremely rare cases) it is used only when necessary. However, there is an option provided to allow you to always use the second option, if you prefer it.
+Because the wrapping method might affect the visual styling of the page, it is used only when necessary. However, there is an option provided to allow you to always use the wrapping option, if you prefer it.
 
 Keyboard workflow tips
 ----------------------
 
-* Pressing <kbd>Return</kbd>/<kbd>Enter</kbd> or simply moving focus away from an input box will run the selector/XPath, or update the outline or box shadow style, if the values have changed.
+* Pressing <kbd>Return</kbd>/<kbd>Enter</kbd> or simply moving focus away from an input box will run the selector/XPath, or update the visual highlighting styles, if the values have changed.
 
 * In addition, if you're running in manual mode (where the page is not monitored for changes), pressing <kbd>Return</kbd>/<kbd>Enter</kbd> will re-run the selector/XPath, even if it hasn't changed.
 
-* The pop-up stays open after you've entered/updated values, so you can keep refining your selector/XPath. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/XPath/outline/box shadow, you can just press <kbd>Escape</kbd> and the pop-up will close, and the new value will be used.
+* The pop-up stays open after you've entered/updated values, so you can keep refining your selector/XPath. Instead of pressing <kbd>Return</kbd>/<kbd>Enter</kbd> after inputting a new selector/XPath, or visual highlight style, you can just press <kbd>Escape</kbd> and the pop-up will close, and the new value will be used.
 
 Limitations
 -----------
 
-It's possible that, depending on the page's styling, the use of landmark regions can alter the visual presentation of the page. In extreme cases, it could interfere with the functionality, though this is expected to be very rare.
+It's possible that, depending on the page's styling, the use of landmark regions can alter the visual presentation of the page—though there are mitigations in place, as described above. Adding landmarks might interfere with the functionality of the page, though this is expected to be extremely rare.
 
 Only elements below the `<body>` will be counted as matches, and highlighted (for either type of query).
 
