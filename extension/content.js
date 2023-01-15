@@ -598,8 +598,12 @@ function sendInfo(includeLocatorValidity) {
 
 // Event handlers
 
+// NOTE: This is called regardless as to whether the document is visible,
+//       because the updates need to be made. An alternative would be to redraw
+//       everything when the document becomes visible. However, becuase this is
+//       a developer tool, and not expected to be in use (or experience such
+//       changes) often, the overhead is acceptable.
 chrome.storage.onChanged.addListener((changes) => {
-	if (document.hidden) return
 	for (const setting in changes) {
 		switch (setting) {
 			case 'locator':
@@ -703,6 +707,6 @@ document.addEventListener('visibilitychange', reflectVisibility)
 // Firefox auto-injects content scripts
 if (!document.hidden) {
 	state(states.startup)
-	sendInfo(false)  // pop-up could be open with different inputs; badge text
+	sendInfo(false)  // set badge text; update pop-up info if it's open
 	setTimeout(startUp, STARTUP_GRACE_TIME)
 }
