@@ -266,10 +266,18 @@ let gRunCounter = 0
 let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
 
+function checkedSend(name, data) {
+	chrome.runtime.sendMessage({ name, data }, function() {
+		if (chrome.runtime.lastError) {
+			console.log('Probably not important:', chrome.runtime.lastError.message)
+		}
+	})
+}
+
 // Mutation observation
 
 const gObserver = new MutationObserver(() => {
-	chrome.runtime.sendMessage({ name: 'mutations', data: ++gMutationCounter })
+	checkedSend('mutations', ++gMutationCounter)
 	const now = Date.now()
 	if (now > gLastMutationTime + MUTATION_IGNORE_TIME) {
 		runDueToMutation(now)
@@ -573,13 +581,12 @@ function removeLandmarkPropertiesFromExistingLandmark(element) {
 }
 
 function sendInfo(includeLocatorValidity) {
-	chrome.runtime.sendMessage({ name: 'mutations', data: gMutationCounter })
-	chrome.runtime.sendMessage({ name: 'runs', data: gRunCounter })
-	chrome.runtime.sendMessage({ name: 'matches', data: gMatchCounter })
-	chrome.runtime.sendMessage({ name: 'state', data: gState })
+	checkedSend('mutations', gMutationCounter)
+	checkedSend('runs', gRunCounter)
+	checkedSend('matches', gMatchCounter)
+	checkedSend('state', gState)
 	if (includeLocatorValidity) {
-		chrome.runtime.sendMessage(
-			{ name: 'locator-validity', data: gValidLocator })
+		checkedSend('locator-validity', gValidLocator)
 	}
 }
 
@@ -646,10 +653,15 @@ chrome.storage.onChanged.addListener((changes) => {
 })
 
 chrome.runtime.onMessage.addListener(message => {
-	if (message.name === 'get-info') {
-		sendInfo(true)
-	} else if (message.name === 'run' && gState === states.manual) {
-		locateAndhighlight(true)
+	switch (message.name) {
+		case 'get-info':
+			sendInfo(true)
+			break
+		case 'run':
+			if(gState === states.manual) locateAndhighlight(true)
+			break
+		default:
+			throw Error(`Unknown message: ${message.name}`)
 	}
 })
 
@@ -673,7 +685,7 @@ function startUp() {
 
 function state(newState) {
 	gState = newState
-	chrome.runtime.sendMessage({ name: 'state', data: newState })
+	checkedSend('state', newState)
 }
 
 document.addEventListener('visibilitychange', reflectVisibility)
