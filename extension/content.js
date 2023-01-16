@@ -1,6 +1,7 @@
 'use strict'
 // NOTE: Also in popup.js
 const settings = {
+	'on': true,
 	'locator': null,
 	'drawOutline': true,
 	'outline': '2px solid orange',
@@ -301,13 +302,9 @@ function observeDocument() {
 	state(states.observing)
 }
 
-function stopObserving() {
+function stopObservingAndUnScheduleRun() {
 	gObserver.disconnect()
 	gObserver.takeRecords()
-}
-
-function stopObservingAndUnScheduleRun() {
-	stopObserving()
 	if (gScheduledRun) {
 		clearTimeout(gScheduledRun)
 		gScheduledRun = null
@@ -322,7 +319,7 @@ function locateAndhighlight() {
 	gHighlightLandmarkCounter = 0
 	const foundElements = new Set()
 
-	stopObserving()
+	stopObservingAndUnScheduleRun()
 	removeAllLandmarks()
 
 	if (gCached.locator) {
@@ -597,6 +594,13 @@ function sendInfo() {
 chrome.storage.onChanged.addListener((changes) => {
 	for (const setting in changes) {
 		switch (setting) {
+			case 'on':
+				setUpOrTearDownHandlers(changes.on.newValue)
+				if (changes.on.newValue === false) {
+					removeAllLandmarks()
+					removeVisualHighlightsExceptFrom()
+				}
+				break
 			case 'locator':
 				gCached[setting] = changes[setting].newValue
 				locateAndhighlight()
@@ -606,7 +610,7 @@ chrome.storage.onChanged.addListener((changes) => {
 			case 'outline':
 			case 'boxShadow':
 				gCached[setting] = changes[setting].newValue
-				stopObserving()
+				stopObservingAndUnScheduleRun()
 				for (const [element, info] of gHighlights) {
 					if (!gCached.drawOutline || !gCached.outline) {
 						element.style.outline = info.outline
@@ -627,6 +631,7 @@ chrome.storage.onChanged.addListener((changes) => {
 			case 'color':
 			case 'opacity':
 				gCached[setting] = changes[setting].newValue
+				stopObservingAndUnScheduleRun()
 				// NOTE: Have to remove all landmarks because FIXME
 				if (gCached.landmarks) removeAllLandmarks()
 				removeVisualHighlightsExceptFrom()
@@ -643,7 +648,10 @@ chrome.storage.onChanged.addListener((changes) => {
 				break
 			case 'landmarks':
 			case 'landmarksAlwaysWrap':
-				if (gCached.landmarks) removeAllLandmarks()
+				if (gCached.landmarks) {
+					stopObservingAndUnScheduleRun()
+					removeAllLandmarks()
+				}
 				gCached[setting] = changes[setting].newValue
 				if (gCached.landmarks) locateAndhighlight()
 				break
@@ -667,22 +675,27 @@ function messageHandler(message) {
 
 function reflectVisibility() {
 	// In Firefox, the pop-up may be open when we switch between pages.
-	// NOTE: We have not been listening to these messages whilst invisible, so
-	//       we ask the background script to update us.
+	//
+	// NOTE: We have not been listening to messages (including the one about
+	//       the popup's visibility) whilst invisible, so we ask the background
+	//       script to update us.
 	chrome.runtime.sendMessage({ name: 'popup-open' }, response => {
 		if (chrome.runtime.lastError) {
 			throw Error(chrome.runtime.lastError.message)
 		}
 		gPopupOpen = response.data
-
-		if (document.hidden) {
-			stopObservingAndUnScheduleRun()
-			chrome.runtime.onMessage.removeListener(messageHandler)
-		} else {
-			chrome.runtime.onMessage.addListener(messageHandler)
-			refreshSettingsAndLocate()
-		}
+		setUpOrTearDownHandlers(!document.hidden)
 	})
+}
+
+function setUpOrTearDownHandlers(enable) {
+	if (enable) {
+		chrome.runtime.onMessage.addListener(messageHandler)
+		refreshSettingsAndLocate()
+	} else {
+		stopObservingAndUnScheduleRun()
+		chrome.runtime.onMessage.removeListener(messageHandler)
+	}
 }
 
 // Bootstrapping and helper functions

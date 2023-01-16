@@ -41,7 +41,7 @@ The browser toolbar button is badged with the number of matches found (if there 
 
 By default, whilst a query exists in the "Selector or XPath" input box, the page will be re-queried on any DOM change (this uses a [MutationObserver](https://developer.mozilla.org/en-US/docs/Web/API/MutationObserver) behind the scenes). However, if there are subsequent changes to the DOM within a two-second window, they will be ignored, and the page will be re-queried at the end of a further two-second window. This is intended to mitigate most performance concerns during active use. Some pages (often web apps or games) change a lot, though, so the option is provided to change monitoring off.
 
-It is recommended to leave the selector/XPath box blank, or to disable monitoring, when you're not using the extension, to avoid wasting CPU time and energy.
+It is recommended to disable the extension, leave the selector/XPath box blank, or to disable change monitoring, when you're not using the extension, to avoid wasting CPU time and energy.
 
 ### Landmark regions
 

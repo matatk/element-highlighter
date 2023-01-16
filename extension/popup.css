@@ -30,8 +30,6 @@ input[type="checkbox"] + label { grid-column: 2 / 6; }
 
 input { grid-column: 2 / 5; }
 
-#locator { grid-column: 1 / 5; }
-
 #color       { grid-column: 2 / 3; }
 #color-label { grid-column: 1 / 3; }
 

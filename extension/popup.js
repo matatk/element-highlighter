@@ -1,6 +1,7 @@
 'use strict'
 // NOTE: Also in content.js
 const settings = {
+	'on': true,
 	'locator': null,
 	'drawOutline': true,
 	'outline': '2px solid orange',
@@ -45,7 +46,19 @@ function showValidity(setting, validity) {
 		'aria-invalid', validity === false)
 }
 
+function reflectOnState(onState) {
+	const onCheckbox = document.getElementById('on')
+	const disabledState = !onState
+	for (const control of document.querySelectorAll('input')) {
+		if (control !== onCheckbox) control.disabled = disabledState
+	}
+	if (onState) document.getElementById('locator').focus()
+}
+
 chrome.storage.sync.get(settings, items => {
+	reflectOnState(items.on)
+	document.getElementById(items.on ? 'locator' : 'on').focus()
+
 	for (const setting in settings) {
 		const control = document.getElementById(setting)
 		if (typeof settings[setting] === 'boolean') {
@@ -61,7 +74,7 @@ chrome.storage.sync.get(settings, items => {
 			control.addEventListener('change', event => {
 				const validity = isValidCss(setting, event.target.value)
 				if (validity !== false) {
-					chrome.storage.sync.set({ [setting]: event.target.value })
+					chrome.storage.sync.set({ [setting]: event.target.value.trim() })
 				}
 				showValidity(setting, validity)
 			})
@@ -69,15 +82,9 @@ chrome.storage.sync.get(settings, items => {
 			control.value = items[setting]
 
 			simpleChangeHandler(control, event => {
-				chrome.storage.sync.set({ [setting]: event.target.value })
+				chrome.storage.sync.set({ [setting]: event.target.value.trim() })
 			})
 		}
-	}
-})
-
-document.getElementById('locator').addEventListener('keydown', event => {
-	if (event.code === 'Enter') {
-		withActiveTab(tab => chrome.tabs.sendMessage(tab.id, { name: 'run' }))
 	}
 })
 
@@ -102,6 +109,16 @@ chrome.runtime.onMessage.addListener((message, sender) => {
 			showValidity('locator', message.data)
 			break
 		default:
+	}
+})
+
+chrome.storage.onChanged.addListener((changes) => {
+	if ('on' in changes) reflectOnState(changes.on.newValue)
+})
+
+document.getElementById('locator').addEventListener('keydown', event => {
+	if (event.code === 'Enter') {
+		withActiveTab(tab => chrome.tabs.sendMessage(tab.id, { name: 'run' }))
 	}
 })
 
