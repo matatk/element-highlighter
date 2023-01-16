@@ -721,3 +721,11 @@ if (!document.hidden) {
 		if (!document.hidden) startUpOrResume()
 	}, STARTUP_GRACE_TIME)
 }
+
+// NOTE: Only needed on Chromium (TODO: conditionally build)
+chrome.runtime.connect({ name: 'unloader' }).onDisconnect.addListener(() => {
+	console.log('Content script disconnected due to extension unload/reload.')
+	stopObservingAndUnScheduleRun()
+	document.removeEventListener('visibilitychange', reflectVisibility)
+	chrome.runtime.onMessage.removeListener(generalMessageHandler)
+})
