@@ -123,14 +123,4 @@ document.getElementById('help').addEventListener('click', () => {
 	window.close()
 })
 
-withActiveTab(tab => {
-	if (tab.url.match(/^(?:https?|file):\/\//)) {
-		chrome.tabs.sendMessage(tab.id, { name: 'get-info' })
-	} else {
-		for (const control of document.getElementsByTagName('input')) {
-			control.disabled = true
-		}
-	}
-})
-
-chrome.runtime.connect({ name: 'popup' })
+chrome.runtime.connect({ name: 'popup' })  // info will be sent eventually

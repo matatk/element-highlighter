@@ -77,7 +77,9 @@ Only elements below the `<body>` will be counted as matches, and highlighted (fo
 
 An XPath can return more than just an element, or elements, but only XPaths that return elements are supported.
 
-The extension is forbidden from running on some pages. If you visit a built-in browser page (where the URL doesn't start with `https?://`) the pop-up's input controls will be disabled. However, the extension will also not run on the browser's extension store pages, and that is not detected by the pop-up.
+If you unload (or reload, or update) the extension whilst matches are highlighted, you'll need to refresh those pages to restore their appearance, and correct extension behaviour.
+
+The extension is forbidden from running on built-in browser pages (where the URL doesn't start with `https?://`), and the browsers' extension store pages. The pop-up doesn't reflect this.
 
 Acknowledgements
 ----------------

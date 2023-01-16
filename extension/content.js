@@ -257,27 +257,18 @@ const MUTATION_IGNORE_TIME = 2e3
 const gHighlights = new Map()  // elmnt : { outline: str, landmark: elmnt }
 
 const gCached = {}
-let gState = null
-let gValidLocator = true
+
+// Info sent to pop-up
 let gMatchCounter = 0
-let gHighlightLandmarkCounter = 0
 let gMutationCounter = 0
 let gRunCounter = 0
+let gState = null
+let gValidLocator = true
+
+let gHighlightLandmarkCounter = 0
 let gScheduledRun = null
 let gLastMutationTime = Date.now()  // due to query run on startup
 let gPopupOpen = false
-
-// NOTE: Callers need to check document is visible, and whether popup is open
-function send(name, data) {
-	chrome.runtime.sendMessage({ name, data }, function() {
-		if (chrome.runtime.lastError) {
-			// NOTE: Was printing the message to console, but got loads of
-			//       notices about the port closing before a response could be
-			//       received, in Chrome. This doesn't seem to make sense, as
-			//       the port is betwixt the poup and background script.
-		}
-	})
-}
 
 // Mutation observation
 
@@ -522,7 +513,7 @@ function removeAllLandmarks() {
 					break
 				default:
 					console.error(landmark)
-					throw Error(`Unknown marker type: ${type}`)
+					throw Error(`Landmark with invalid marker type: ${type}`)
 			}
 			info.landmark = null
 		}
@@ -563,7 +554,7 @@ function addLandmarkPropertiesToExistingLandmark(element) {
 function setMarker(element, type) {
 	// eslint-disable-next-line no-prototype-builtins
 	if (!markerTypes.hasOwnProperty(type)) {
-		throw Error(`Unknown marker type: ${type}`)
+		throw Error(`Cannot set invalid marker type: ${type}`)
 	}
 	element.setAttribute(LANDMARK_MARKER, markerTypes[type])
 }
@@ -656,19 +647,16 @@ chrome.storage.onChanged.addListener((changes) => {
 				if (gCached.landmarks) locateAndhighlight(false)
 				break
 			default:
-				throw Error(`Unknown setting: "${setting}"`)
+				throw Error(`Unknown setting: ${setting}`)
 		}
 	}
 })
 
-function generalMessageHandler(message) {
+function messageHandler(message) {
 	switch (message.name) {
 		case 'popup-open':
 			gPopupOpen = message.data
 			if (gPopupOpen) sendInfo()
-			break
-		case 'get-info':
-			sendInfo()
 			break
 		case 'run':
 			if (gState === states.manual) locateAndhighlight(true)
@@ -688,17 +676,17 @@ function reflectVisibility() {
 
 		if (document.hidden) {
 			stopObservingAndUnScheduleRun()
-			chrome.runtime.onMessage.removeListener(generalMessageHandler)
+			chrome.runtime.onMessage.removeListener(messageHandler)
 		} else {
-			chrome.runtime.onMessage.addListener(generalMessageHandler)
-			startUpOrResume()
+			chrome.runtime.onMessage.addListener(messageHandler)
+			refreshSettingsAndLocate()
 		}
 	})
 }
 
-// Bootstrapping and state
+// Bootstrapping and helper functions
 
-function startUpOrResume() {
+function refreshSettingsAndLocate() {
 	chrome.storage.sync.get(settings, items => {
 		Object.assign(gCached, items)
 		state(items.monitor ? states.observing : states.manual)
@@ -711,6 +699,26 @@ function state(newState) {
 	if (!document.hidden && gPopupOpen) send('state', newState)
 }
 
+// NOTE: Callers need to check document is visible, and whether popup is open
+function send(name, data) {
+	chrome.runtime.sendMessage({ name, data }, function() {
+		if (chrome.runtime.lastError) {
+			// NOTE: Was printing the message to console, but got loads of
+			//       notices about the port closing before a response could be
+			//       received, in Chrome. This doesn't seem to make sense, as
+			//       the port is betwixt the poup and background script.
+		}
+	})
+}
+
+// NOTE: Only needed on Chromium (TODO: conditionally build)
+chrome.runtime.connect({ name: 'unloaded' }).onDisconnect.addListener(() => {
+	console.info('Content script disconnected due to extension unload/reload.')
+	stopObservingAndUnScheduleRun()
+	document.removeEventListener('visibilitychange', reflectVisibility)
+	chrome.runtime.onMessage.removeListener(messageHandler)
+})
+
 document.addEventListener('visibilitychange', reflectVisibility)
 
 // Firefox auto-injects content scripts
@@ -718,14 +726,8 @@ if (!document.hidden) {
 	state(states.startup)
 	sendInfo()  // set badge text; update pop-up info if it's open
 	setTimeout(() => {
-		if (!document.hidden) startUpOrResume()
+		if (!document.hidden) {
+			reflectVisibility()  // immediately checks for open pop-up
+		}
 	}, STARTUP_GRACE_TIME)
 }
-
-// NOTE: Only needed on Chromium (TODO: conditionally build)
-chrome.runtime.connect({ name: 'unloader' }).onDisconnect.addListener(() => {
-	console.log('Content script disconnected due to extension unload/reload.')
-	stopObservingAndUnScheduleRun()
-	document.removeEventListener('visibilitychange', reflectVisibility)
-	chrome.runtime.onMessage.removeListener(generalMessageHandler)
-})

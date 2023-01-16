@@ -28,7 +28,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 			break
 		}
 		case 'popup-open':
-			sendResponse({ name: 'popup-open', data: isPopupOpen })
+			sendResponse({ data: isPopupOpen })
 			break
 		default:
 	}
