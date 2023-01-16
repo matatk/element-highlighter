@@ -441,6 +441,7 @@ function addVisualHighlights(elements) {
 			tint.style.backgroundColor = gCached.color
 			tint.style.opacity = gCached.opacity
 			tint.style.pointerEvents = 'none'
+			tint.style.zIndex = 9942
 			tint.setAttribute(HIGHLIGHT_MARKER, '')
 			document.body.appendChild(tint)
 		}
