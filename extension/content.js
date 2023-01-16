@@ -287,7 +287,7 @@ const gObserver = new MutationObserver(() => {
 })
 
 function runDueToMutation(currentTime) {
-	locateAndhighlight(true)
+	locateAndhighlight()
 	gScheduledRun = null
 	gLastMutationTime = currentTime
 }
@@ -316,7 +316,7 @@ function stopObservingAndUnScheduleRun() {
 
 // Managing highlights (outlines and landmarks)
 
-function locateAndhighlight(incrementRunCounter) {
+function locateAndhighlight() {
 	gValidLocator = true
 	gMatchCounter = 0
 	gHighlightLandmarkCounter = 0
@@ -348,7 +348,7 @@ function locateAndhighlight(incrementRunCounter) {
 				foundElements.add(match)
 			}
 			gMatchCounter = foundElements.size
-			if (incrementRunCounter) gRunCounter++
+			gRunCounter++
 		}
 	}
 
@@ -599,7 +599,7 @@ chrome.storage.onChanged.addListener((changes) => {
 		switch (setting) {
 			case 'locator':
 				gCached[setting] = changes[setting].newValue
-				locateAndhighlight(true)
+				locateAndhighlight()
 				break
 			case 'drawOutline':
 			case 'drawBoxShadow':
@@ -630,12 +630,12 @@ chrome.storage.onChanged.addListener((changes) => {
 				// NOTE: Have to remove all landmarks because FIXME
 				if (gCached.landmarks) removeAllLandmarks()
 				removeVisualHighlightsExceptFrom()
-				locateAndhighlight(false)
+				locateAndhighlight()
 				break
 			case 'monitor':
 				if (changes.monitor.newValue === true) {
 					state(states.observing)
-					locateAndhighlight(false)  // will observeDocument()
+					locateAndhighlight()  // will observeDocument()
 				} else {
 					stopObservingAndUnScheduleRun()
 					state(states.manual)
@@ -645,7 +645,7 @@ chrome.storage.onChanged.addListener((changes) => {
 			case 'landmarksAlwaysWrap':
 				if (gCached.landmarks) removeAllLandmarks()
 				gCached[setting] = changes[setting].newValue
-				if (gCached.landmarks) locateAndhighlight(false)
+				if (gCached.landmarks) locateAndhighlight()
 				break
 			default:
 				throw Error(`Unknown setting: ${setting}`)
@@ -660,7 +660,7 @@ function messageHandler(message) {
 			if (gPopupOpen) sendInfo()
 			break
 		case 'run':
-			if (gState === states.manual) locateAndhighlight(true)
+			if (gState === states.manual) locateAndhighlight()
 			break
 	}
 }
@@ -691,7 +691,7 @@ function refreshSettingsAndLocate() {
 	chrome.storage.sync.get(settings, items => {
 		Object.assign(gCached, items)
 		state(items.monitor ? states.observing : states.manual)
-		locateAndhighlight(true)
+		locateAndhighlight()
 	})
 }
 
