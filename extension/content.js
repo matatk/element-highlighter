@@ -429,12 +429,14 @@ function addVisualHighlights(elements) {
 
 		const tint = gCached.drawTint ? document.createElement('div') : null
 		if (tint) {
-			const rect = element.getBoundingClientRect()
 			tint.style.position = 'absolute'
+
+			const rect = element.getBoundingClientRect()
 			tint.style.top = window.scrollY + rect.top + 'px'
 			tint.style.left = window.scrollX + rect.left + 'px'
 			tint.style.width = rect.width + 'px'
 			tint.style.height = rect.height + 'px'
+
 			tint.style.backgroundColor = gCached.color
 			tint.style.opacity = gCached.opacity
 			tint.style.pointerEvents = 'none'
@@ -738,15 +740,23 @@ chrome.runtime.connect({ name: 'unloaded' }).onDisconnect.addListener(() => {
 	chrome.runtime.onMessage.removeListener(messageHandler)
 })
 
-document.addEventListener('visibilitychange', reflectVisibility)
+// Actual start-up...
+//
+// This is all wrapped in checking the 'on' setting, because doing so here
+// negates the need to unnecessarily get the setting each time page visibility
+// changes.
+chrome.storage.sync.get({ on: settings.on }, items => {
+	gCached.on = items.on
+	document.addEventListener('visibilitychange', reflectVisibility)
 
-// Firefox auto-injects content scripts
-if (!document.hidden) {
-	state(states.startup)
-	sendInfo()  // set badge text; update pop-up info if it's open
-	setTimeout(() => {
-		if (!document.hidden) {
-			reflectVisibility()  // checks for pop-up; gets settings if needed
-		}
-	}, STARTUP_GRACE_TIME)
-}
+	// Firefox auto-injects content scripts
+	if (!document.hidden) {
+		state(states.startup)
+		sendInfo()  // set badge text; update pop-up info if it's open
+		setTimeout(() => {
+			if (!document.hidden) {
+				reflectVisibility()
+			}
+		}, STARTUP_GRACE_TIME)
+	}
+})
