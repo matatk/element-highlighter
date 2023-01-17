@@ -33,9 +33,11 @@ Activate the toolbar icon, or press <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>H</kbd>
 
 In the pop-up, you can also toggle whether the page is automatically monitored for changes, whether landmark regions are placed around each match, and how landmarks are added (details below).
 
-All settings are saved across browser restarts. A button is provided to reset everything to the defaults (it leaves your selector/XPath alone, though).
+The settings apply across all pages, are saved across browser restarts. A button is provided to reset everything to the defaults (it leaves your selector/XPath alone, though).
 
 The browser toolbar button is badged with the number of matches found (if there are any—if there are no matches, the badge is removed).
+
+Pressing <kbd>Alt</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> (<kbd>Option</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> on Mac) will toggle whether highlighting and monitoring are enabled. This allows you to quickly revert the page back to its normal state, without losing your selector/XPath value.
 
 ### Change monitoring
 

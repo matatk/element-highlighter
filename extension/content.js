@@ -255,7 +255,7 @@ const HIGHLIGHT_MARKER = 'data-element-highlighter-highlight'
 const ORIG_ARIA_LABEL = 'data-original-aria-label'
 const STARTUP_GRACE_TIME = 2e3
 const MUTATION_IGNORE_TIME = 2e3
-const gHighlights = new Map()  // elmnt : { outline: str, landmark: elmnt }
+const gHighlights = new Map()  // element : { outline, boxShadow, tint, landmark }
 
 const gCached = {}
 
@@ -283,7 +283,7 @@ const gObserver = new MutationObserver(() => {
 	} else if (gScheduledRun === null) {
 		gScheduledRun = setTimeout(
 			runDueToMutation, MUTATION_IGNORE_TIME, now + MUTATION_IGNORE_TIME)
-		state('ignoring')
+		state(states.ignoring)
 	}
 })
 
@@ -489,12 +489,11 @@ function addAllLandmarks() {
 	}
 }
 
+// NOTE: Must be called _before_ visual highlights are removed.
 function removeAllLandmarks() {
-	if (!gCached.landmarks) return
-
-	// NOTE: Not checking if the element is contained in the <body>, because
-	//       removing it breaks some apps (e.g. maybe it's a dialog that can be
-	//       shown/hidden).
+	// NOTE: There's no check for if the element is contained within the
+	//       <body>, as this breaks some apps (which seem to retain
+	//       non-attached elements to provide modals).
 	for (const info of gHighlights.values()) {
 		const landmark = info.landmark
 		if (landmark) {
@@ -586,19 +585,22 @@ function sendInfo() {
 
 // Event handlers
 
-// NOTE: This is called regardless as to whether the document is visible,
-//       because the updates need to be made. An alternative would be to redraw
-//       everything when the document becomes visible. However, becuase this is
-//       a developer tool, and not expected to be in use (or experience such
-//       changes) often, the overhead is acceptable.
-chrome.storage.onChanged.addListener((changes) => {
+function storageChangedHandlerStandby(changes) {
+	if ('on' in changes) {
+		gCached.on = changes.on.newValue
+		if (!document.hidden) {
+			setUpOrTearDownHandlers(true)
+		}
+	}
+}
+
+function storageChangedHandler(changes) {
 	for (const setting in changes) {
 		switch (setting) {
 			case 'on':
-				setUpOrTearDownHandlers(changes.on.newValue)
+				gCached[setting] = changes[setting].newValue
 				if (changes.on.newValue === false) {
-					removeAllLandmarks()
-					removeVisualHighlightsExceptFrom()
+					setUpOrTearDownHandlers(false)
 				}
 				break
 			case 'locator':
@@ -659,7 +661,7 @@ chrome.storage.onChanged.addListener((changes) => {
 				throw Error(`Unknown setting: ${setting}`)
 		}
 	}
-})
+}
 
 function messageHandler(message) {
 	switch (message.name) {
@@ -684,29 +686,32 @@ function reflectVisibility() {
 			throw Error(chrome.runtime.lastError.message)
 		}
 		gPopupOpen = response.data
-		setUpOrTearDownHandlers(!document.hidden)
+		setUpOrTearDownHandlers(!document.hidden && gCached.on)
 	})
 }
 
 function setUpOrTearDownHandlers(enable) {
 	if (enable) {
-		chrome.runtime.onMessage.addListener(messageHandler)
-		refreshSettingsAndLocate()
+		chrome.storage.sync.get(settings, items => {
+			Object.assign(gCached, items)
+			state(items.monitor ? states.observing : states.manual)
+			chrome.storage.onChanged.removeListener(storageChangedHandlerStandby)
+			chrome.storage.onChanged.addListener(storageChangedHandler)
+			chrome.runtime.onMessage.addListener(messageHandler)
+			locateAndhighlight()
+		})
 	} else {
-		stopObservingAndUnScheduleRun()
+		chrome.runtime.onMessage.removeListener(storageChangedHandler)
 		chrome.runtime.onMessage.removeListener(messageHandler)
+		chrome.storage.onChanged.addListener(storageChangedHandlerStandby)
+		stopObservingAndUnScheduleRun()
+		removeAllLandmarks()
+		removeVisualHighlightsExceptFrom()
+		send('clear-badge')
 	}
 }
 
 // Bootstrapping and helper functions
-
-function refreshSettingsAndLocate() {
-	chrome.storage.sync.get(settings, items => {
-		Object.assign(gCached, items)
-		state(items.monitor ? states.observing : states.manual)
-		locateAndhighlight()
-	})
-}
 
 function state(newState) {
 	gState = newState
@@ -741,7 +746,7 @@ if (!document.hidden) {
 	sendInfo()  // set badge text; update pop-up info if it's open
 	setTimeout(() => {
 		if (!document.hidden) {
-			reflectVisibility()  // immediately checks for open pop-up
+			reflectVisibility()  // checks for pop-up; gets settings if needed
 		}
 	}, STARTUP_GRACE_TIME)
 }

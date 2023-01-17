@@ -9,7 +9,7 @@ const sendToActiveTab = (name, data) => withActiveTab(tab =>
 
 let isPopupOpen = false
 
-chrome.runtime.onConnect.addListener(function(port) {
+chrome.runtime.onConnect.addListener(port => {
 	if (port.name === 'popup') {
 		isPopupOpen = true
 		sendToActiveTab('popup-open', true)
@@ -27,9 +27,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 			chrome.browserAction.setBadgeText({ tabId: sender.tab.id, text })
 			break
 		}
+		case 'clear-badge':
+			chrome.browserAction.setBadgeText({ tabId: sender.tab.id, text: null })
+			break
 		case 'popup-open':
 			sendResponse({ data: isPopupOpen })
 			break
 		default:
+	}
+})
+
+chrome.commands.onCommand.addListener(command => {
+	// TODO: Needed? (Assuming the action command wouldn't get here.)
+	if (command === 'toggle-element-highlighter') {
+		chrome.storage.sync.get({ on: true }, items => {
+			chrome.storage.sync.set({ on: !items.on })
+		})
 	}
 })

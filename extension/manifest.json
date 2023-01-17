@@ -20,6 +20,12 @@
       "suggested_key": {
         "default": "Alt+Shift+H"
       }
+    },
+    "toggle-element-highlighter": {
+      "suggested_key": {
+        "default": "Alt+Shift+E"
+      },
+      "description": "Enable/disable Element Highlighter"
     }
   },
   "content_scripts": [

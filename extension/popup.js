@@ -113,7 +113,12 @@ chrome.runtime.onMessage.addListener((message, sender) => {
 })
 
 chrome.storage.onChanged.addListener((changes) => {
-	if ('on' in changes) reflectOnState(changes.on.newValue)
+	if ('on' in changes) {
+		// NOTE: Setting change could've come from keyboard command. This won't
+		//       fire an event.
+		document.getElementById('on').checked = changes.on.newValue
+		reflectOnState(changes.on.newValue)
+	}
 })
 
 document.getElementById('locator').addEventListener('keydown', event => {
