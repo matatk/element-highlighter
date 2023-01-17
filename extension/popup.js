@@ -2,6 +2,7 @@
 // NOTE: Also in content.js
 const settings = {
 	'on': true,
+	'announce': false,
 	'locator': null,
 	'drawOutline': true,
 	'outline': '2px solid orange',

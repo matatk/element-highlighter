@@ -2,6 +2,7 @@
 // NOTE: Also in popup.js
 const settings = {
 	'on': true,
+	'announce': false,
 	'locator': null,
 	'drawOutline': true,
 	'outline': '2px solid orange',
@@ -591,7 +592,7 @@ function storageChangedHandlerStandby(changes) {
 	if ('on' in changes) {
 		gCached.on = changes.on.newValue
 		if (!document.hidden) {
-			setUpOrTearDownHandlers(true)
+			setUpOrTearDownHandlers(true, true)
 		}
 	}
 }
@@ -602,8 +603,11 @@ function storageChangedHandler(changes) {
 			case 'on':
 				gCached[setting] = changes[setting].newValue
 				if (changes.on.newValue === false) {
-					setUpOrTearDownHandlers(false)
+					setUpOrTearDownHandlers(false, true)
 				}
+				break
+			case 'announce':
+				gCached[setting] = changes[setting].newValue
 				break
 			case 'locator':
 				gCached[setting] = changes[setting].newValue
@@ -688,11 +692,11 @@ function visibilityHandler() {
 			throw Error(chrome.runtime.lastError.message)
 		}
 		gPopupOpen = response.data
-		setUpOrTearDownHandlers(!document.hidden && gCached.on)
+		setUpOrTearDownHandlers(!document.hidden && gCached.on, false)
 	})
 }
 
-function setUpOrTearDownHandlers(enable) {
+function setUpOrTearDownHandlers(enable, userTriggered) {
 	if (enable) {
 		chrome.storage.sync.get(settings, items => {
 			Object.assign(gCached, items)
@@ -710,6 +714,11 @@ function setUpOrTearDownHandlers(enable) {
 		removeAllLandmarks()
 		removeVisualHighlightsExceptFrom()
 		send('clear-badge')
+	}
+
+	if (!document.hidden && userTriggered && gCached.announce) {
+		const phrase = 'Highlighter ' + (enable ? 'on' : 'off')
+		speechSynthesis.speak(new SpeechSynthesisUtterance(phrase))
 	}
 }
 
@@ -745,8 +754,8 @@ chrome.runtime.connect({ name: 'unloaded' }).onDisconnect.addListener(() => {
 // This is all wrapped in checking the 'on' setting, because doing so here
 // negates the need to unnecessarily get the setting each time page visibility
 // changes.
-chrome.storage.sync.get({ on: settings.on }, items => {
-	gCached.on = items.on
+chrome.storage.sync.get({ on: settings.on, announce: settings.announce }, items => {
+	Object.assign(gCached, items)
 	document.addEventListener('visibilitychange', visibilityHandler)
 
 	// Firefox auto-injects content scripts
