@@ -677,7 +677,7 @@ function messageHandler(message) {
 	}
 }
 
-function reflectVisibility() {
+function visibilityHandler() {
 	// In Firefox, the pop-up may be open when we switch between pages.
 	//
 	// NOTE: We have not been listening to messages (including the one about
@@ -736,7 +736,7 @@ function send(name, data) {
 chrome.runtime.connect({ name: 'unloaded' }).onDisconnect.addListener(() => {
 	console.info('Content script disconnected due to extension unload/reload.')
 	stopObservingAndUnScheduleRun()
-	document.removeEventListener('visibilitychange', reflectVisibility)
+	document.removeEventListener('visibilitychange', visibilityHandler)
 	chrome.runtime.onMessage.removeListener(messageHandler)
 })
 
@@ -747,7 +747,7 @@ chrome.runtime.connect({ name: 'unloaded' }).onDisconnect.addListener(() => {
 // changes.
 chrome.storage.sync.get({ on: settings.on }, items => {
 	gCached.on = items.on
-	document.addEventListener('visibilitychange', reflectVisibility)
+	document.addEventListener('visibilitychange', visibilityHandler)
 
 	// Firefox auto-injects content scripts
 	if (!document.hidden) {
@@ -755,7 +755,7 @@ chrome.storage.sync.get({ on: settings.on }, items => {
 		sendInfo()  // set badge text; update pop-up info if it's open
 		setTimeout(() => {
 			if (!document.hidden) {
-				reflectVisibility()
+				visibilityHandler()
 			}
 		}, STARTUP_GRACE_TIME)
 	}
