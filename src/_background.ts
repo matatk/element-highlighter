@@ -1,11 +1,16 @@
-'use strict'
+import { defaults } from './settings.js'
+import { withActiveTab } from './helpers.js'
 
-// FIXME: DRY with popup.js
-const withActiveTab = func => chrome.tabs.query(
-	{ active: true, currentWindow: true }, tabs => func(tabs[0]))
+import type { DataMessageName, DataType } from './messageTypes.js'
 
-const sendToActiveTab = (name, data) => withActiveTab(tab =>
-	chrome.tabs.sendMessage(tab.id, { name, data }))
+function sendToActiveTab<Name extends DataMessageName>(
+	name: Name, data: DataType<Name>
+): void {
+	const message = data ? { name, data } : { name }
+	withActiveTab(tab => {
+		chrome.tabs.sendMessage(tab.id!, message)
+	})
+}
 
 let isPopupOpen = false
 
@@ -24,11 +29,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	switch (message.name) {
 		case 'matches': {
 			const text = message.data === 0 ? '' : String(message.data)
-			chrome.browserAction.setBadgeText({ tabId: sender.tab.id, text })
+			chrome.browserAction.setBadgeText({ tabId: sender.tab!.id, text })
 			break
 		}
 		case 'clear-badge':
-			chrome.browserAction.setBadgeText({ tabId: sender.tab.id, text: null })
+			chrome.browserAction.setBadgeText({ tabId: sender.tab!.id, text: null })
 			break
 		case 'popup-open':
 			sendResponse({ data: isPopupOpen })
@@ -38,9 +43,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 })
 
 chrome.commands.onCommand.addListener(command => {
-	// TODO: Needed? (Assuming the action command wouldn't get here.)
+	// TODO: Needed? (Assuming the action command wouldn't trigger this.)
 	if (command === 'toggle-element-highlighter') {
-		chrome.storage.sync.get({ on: true }, items => {
+		chrome.storage.sync.get({ on: defaults.on }, items => {
 			chrome.storage.sync.set({ on: !items.on })
 		})
 	}

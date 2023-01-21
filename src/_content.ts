@@ -1,274 +1,56 @@
-'use strict'
-// NOTE: Also in popup.js
-const settings = {
-	'on': true,
-	'announce': false,
-	'locator': null,
-	'drawOutline': true,
-	'outline': '2px solid orange',
-	'drawBoxShadow': true,
-	'boxShadow': 'inset 0 0 0 2px orange',
-	'drawTint': false,
-	'color': 'orange',
-	'opacity': '25%',
-	'monitor': true,
-	'landmarks': false,
-	'landmarksAlwaysWrap': false
+import { checkIfLandmark, getARIAProvidedLabel } from './landmarksStuff.js'
+import { defaults } from './settings.js'
+
+import type { DataMessageName, DataType, DefiniteDataMessage, Message, NonDataMessageName } from './messageTypes.js'
+import type { Settings } from './settings.js'
+
+type HighlightInfo = {
+	outline: string,
+	boxShadow: string,
+	tint: HTMLElement | null,
+	landmark: HTMLElement | null
 }
 
+const markers = [ 'direct', 'existing', 'wrapper' ] as const
+type Marker = typeof markers[number]
 
-//
-// Landmarks borrowed stuff
-//
-
-// List of landmarks to navigate
-const regionTypes = Object.freeze([
-	// Core ARIA
-	'banner',
-	'complementary',
-	'contentinfo',
-	'form',           // spec says should label
-	'main',
-	'navigation',
-	'region',         // spec says must label
-	'search',
-
-	// Digital Publishing ARIA module
-	'doc-acknowledgments',
-	'doc-afterword',
-	'doc-appendix',
-	'doc-bibliography',
-	'doc-chapter',
-	'doc-conclusion',
-	'doc-credits',
-	'doc-endnotes',
-	'doc-epilogue',
-	'doc-errata',
-	'doc-foreword',
-	'doc-glossary',
-	'doc-index',         // via navigation
-	'doc-introduction',
-	'doc-pagelist',      // via navigation
-	'doc-part',
-	'doc-preface',
-	'doc-prologue',
-	'doc-toc'            // via navigation
-])
-
-// Mapping of HTML5 elements to implicit roles
-const implicitRoles = Object.freeze({
-	ASIDE:   'complementary',
-	FOOTER:  'contentinfo',    // depending on its ancestor elements
-	FORM:    'form',
-	HEADER:  'banner',         // depending on its ancestor elements
-	MAIN:    'main',
-	NAV:     'navigation',
-	SECTION: 'region'
-})
-
-// Sectioning content elements
-const sectioningContentElements = Object.freeze([
-	'ARTICLE',
-	'ASIDE',
-	'NAV',
-	'SECTION'
-])
-
-// Non-<body> sectioning root elements
-const nonBodySectioningRootElements = Object.freeze([
-	'BLOCKQUOTE',
-	'DETAILS',
-	'FIELDSET',
-	'FIGURE',
-	'TD'
-])
-
-// non-<body> sectioning elements and <main>
-const nonBodySectioningElementsAndMain = Object.freeze(
-	sectioningContentElements.concat(nonBodySectioningRootElements, 'MAIN')
-)
-
-function checkIfLandmark(element) {
-	// TODO: include these checks here? (Technically they _are_ needed for the
-	//       element to actually _be_ a landmark, but how/does this affect
-	//       people using AT to explore the page?
-	if (isVisuallyHidden(element) || isSemantiallyHidden(element)) return false
-
-	// Elements with explicitly-set rolees
-	const rawRoleValue = element.getAttribute('role')
-	const explicitRole = rawRoleValue
-		? getValidExplicitRole(rawRoleValue)
-		: null
-	const hasExplicitRole = explicitRole !== null
-
-	// Support HTML5 elements' native roles
-	const role = explicitRole ?? getRoleFromTagNameAndContainment(element)
-
-	// TODO: Could make this more efficient if ignoring the label content.
-	// The element may or may not have a label
-	const label = getARIAProvidedLabel(element)
-
-	// Add the element if it should be considered a landmark
-	if (role && isLandmark(role, hasExplicitRole, label)) {
-		return true
-	}
-
-	return false
+function isMarker(marker: string | null): marker is Marker {
+	if (!marker) return false
+	return (markers as readonly string[]).includes(marker)
 }
 
-// This can only check an element's direct styles. We just stop recursing
-// into elements that are hidden. That's why the heuristics don't call this
-// function (they don't check all of a guessed landmark's parent elements).
-function isVisuallyHidden(element) {
-	if (element.hasAttribute('hidden')) return true
-
-	const style = window.getComputedStyle(element)
-	if (style.visibility === 'hidden' || style.display === 'none') {
-		return true
-	}
-
-	return false
-}
-
-function isSemantiallyHidden(element) {
-	if (element.getAttribute('aria-hidden') === 'true'
-		|| element.hasAttribute('inert')) {
-		return true
-	}
-	return false
-}
-
-function getRoleFromTagNameAndContainment(element) {
-	const name = element.tagName
-	let role = null
-
-	if (name) {
-		// eslint-disable-next-line no-prototype-builtins
-		if (implicitRoles.hasOwnProperty(name)) {
-			role = implicitRoles[name]
-		}
-
-		// <header> and <footer> elements have some containment-
-		// related constraints on whether they're counted as landmarks
-		if (name === 'HEADER' || name === 'FOOTER') {
-			if (!isChildOfTopLevelSection(element)) {
-				role = null
-			}
-		}
-	}
-
-	return role
-}
-
-function isChildOfTopLevelSection(element) {
-	let ancestor = element.parentNode
-
-	while (ancestor !== null) {
-		if (nonBodySectioningElementsAndMain.includes(ancestor.tagName)) {
-			return false
-		}
-		ancestor = ancestor.parentNode
-	}
-
-	return true
-}
-
-function getValidExplicitRole(value) {
-	if (value) {
-		if (value.indexOf(' ') >= 0) {
-			const roles = value.split(' ')
-			for (const role of roles) {
-				if (regionTypes.includes(role)) {
-					return role
-				}
-			}
-		} else if (regionTypes.includes(value)) {
-			return value
-		}
-	}
-	return null
-}
-
-function getARIAProvidedLabel(element) {
-	let label = null
-
-	// TODO general whitespace test?
-	// TODO if some IDs don't exist, this will include nulls - test?
-	const idRefs = element.getAttribute('aria-labelledby')
-	if (idRefs !== null && idRefs.length > 0) {
-		const innerTexts = Array.from(idRefs.split(' '), idRef => {
-			const labelElement = document.getElementById(idRef)
-			return getInnerText(labelElement)
-		})
-		label = innerTexts.join(' ')
-	}
-
-	if (label === null) {
-		label = element.getAttribute('aria-label')
-	}
-
-	return label
-}
-
-function getInnerText(element) {
-	let text = null
-
-	if (element) {
-		text = element.innerText
-		if (text === undefined) {
-			text = element.textContent
-		}
-	}
-
-	return text
-}
-
-function isLandmark(role, explicitRole, label) {
-	// <section> and <form> are only landmarks when labelled.
-	// <div role="form"> is always a landmark.
-	if (role === 'region' || (role === 'form' && !explicitRole)) {
-		return label !== null
-	}
-	return true  // already a valid role if we were called
-}
-
-
-//
-// Content script stuff
-//
-
-const states = Object.freeze({
+const statePrettyNames = {
 	startup: 'Paused on page load',
 	observing: 'Monitoring',
 	notObserving: 'Not monitoring',
 	ignoring: 'Ignoring changes',
 	manual: 'Manual activation'
-})
+} as const
 
-const markerTypes = Object.freeze({
-	direct: 'direct',
-	existing: 'existing',
-	wrapper: 'wrapper'
-})
+type State = keyof typeof statePrettyNames
+
+// Adopted from @types/chrome
+type StorageChanges = { [key: string]: chrome.storage.StorageChange }
+
 
 const LANDMARK_MARKER = 'data-element-highlighter-landmark'
 const HIGHLIGHT_MARKER = 'data-element-highlighter-highlight'
 const ORIG_ARIA_LABEL = 'data-original-aria-label'
 const STARTUP_GRACE_TIME = 2e3
 const MUTATION_IGNORE_TIME = 2e3
-const gHighlights = new Map()  // element : { outline, boxShadow, tint, landmark }
+const gHighlights = new Map<HTMLElement, HighlightInfo>()
 
-const gCached = {}
+const gCached: Settings = { ...defaults }
 
 // Info sent to pop-up
 let gMatchCounter = 0
 let gMutationCounter = 0
 let gRunCounter = 0
-let gState = null
+let gState: State
 let gValidLocator = true
 
 let gHighlightLandmarkCounter = 0
-let gScheduledRun = null
+let gScheduledRun: ReturnType<typeof setTimeout> | null  // TODO: !node
 let gLastMutationTime = Date.now()  // due to query run on startup
 let gPopupOpen = false
 
@@ -284,11 +66,11 @@ const gObserver = new MutationObserver(() => {
 	} else if (gScheduledRun === null) {
 		gScheduledRun = setTimeout(
 			runDueToMutation, MUTATION_IGNORE_TIME, now + MUTATION_IGNORE_TIME)
-		state(states.ignoring)
+		state('ignoring')
 	}
 })
 
-function runDueToMutation(currentTime) {
+function runDueToMutation(currentTime: number) {
 	locateAndhighlight()
 	gScheduledRun = null
 	gLastMutationTime = currentTime
@@ -300,7 +82,7 @@ function observeDocument() {
 		childList: true,
 		subtree: true
 	})
-	state(states.observing)
+	state('observing')
 }
 
 function stopObservingAndUnScheduleRun() {
@@ -318,32 +100,35 @@ function locateAndhighlight() {
 	gValidLocator = true
 	gMatchCounter = 0
 	gHighlightLandmarkCounter = 0
-	const foundElements = new Set()
+	const foundElements: Set<HTMLElement> = new Set()
 
 	stopObservingAndUnScheduleRun()
 	removeAllLandmarks()
 
-	if (gCached.locator) {
-		let nodeList = null
-
+	if (gCached.locator.length) {
 		if (gCached.locator.startsWith('/')) {
-			nodeList = evaluatePathAndSetValidity()
+			for (const match of evaluatePathAndSetValidity()) {
+				foundElements.add(match)
+			}
 		} else {
 			try {
-				nodeList = document.body.querySelectorAll(gCached.locator)
+				const matches = document.body.querySelectorAll(gCached.locator)
+				for (const match of matches) {
+					foundElements.add(match as HTMLElement)
+				}
 			} catch {
 				gValidLocator = false
 			}
 		}
 
 		if (gValidLocator) {
-			for (const match of nodeList) {
+			// TODO: Remove
+			for (const match of foundElements) {
 				if (match.hasAttribute(LANDMARK_MARKER)
 					|| match.hasAttribute(HIGHLIGHT_MARKER)) {
 					console.error(match)
 					throw Error('Element is flagged as a marker or highlight.')
 				}
-				foundElements.add(match)
 			}
 			gMatchCounter = foundElements.size
 			gRunCounter++
@@ -354,11 +139,11 @@ function locateAndhighlight() {
 	addVisualHighlights(foundElements)
 	addAllLandmarks()
 
-	if (gState !== states.manual) {
+	if (gState !== 'manual') {
 		if (gCached.locator && gValidLocator) {
 			observeDocument()
 		} else {
-			state(states.notObserving)
+			state('notObserving')
 		}
 	}
 
@@ -366,17 +151,17 @@ function locateAndhighlight() {
 }
 
 // NOTE: Assumes we have already checked that we have an XPath as locator.
-function evaluatePathAndSetValidity() {
-	const nodeList = []
+function evaluatePathAndSetValidity(): HTMLElement[] {
+	const nodeList: HTMLElement[] = []
 	let result = null
 
-	function addNoBigNodes(node) {
+	function addNoBigNodes(node: Document | HTMLElement) {
 		if (node === document ||
 			node === document.documentElement ||
 			node === document.body) {
 			return
 		}
-		nodeList.push(node)
+		nodeList.push(node as HTMLElement)
 	}
 
 	try {
@@ -392,21 +177,28 @@ function evaluatePathAndSetValidity() {
 					let node = null
 					// eslint-disable-next-line no-cond-assign
 					while (node = result.iterateNext()) {
-						addNoBigNodes(node)
+						if (node.nodeType !== Node.ELEMENT_NODE) continue
+						addNoBigNodes(node as HTMLElement)
 					}
 				}
 					break
 				case XPathResult.UNORDERED_NODE_SNAPSHOT_TYPE:
 				case XPathResult.ORDERED_NODE_SNAPSHOT_TYPE:
 					for (let i = 0; i < result.snapshotLength; i++) {
-						nodeList.push(result.snapshotItem(i))  // TODO: check
+						const node = result.snapshotItem(i)
+						if (node && node.nodeType === Node.ELEMENT_NODE) {
+							nodeList.push(node as HTMLElement)  // TODO: check
+						}
 					}
 					break
 				case XPathResult.ANY_UNORDERED_NODE_TYPE:
-				case XPathResult.FIRST_ORDERED_NODE_TYPE:
-					addNoBigNodes(result.singleNodeValue)  // TODO: check
+				case XPathResult.FIRST_ORDERED_NODE_TYPE: {
+					const node = result.singleNodeValue
+					if (node && node.nodeType === Node.ELEMENT_NODE) {
+						addNoBigNodes(node as HTMLElement)  // TODO: check
+					}
+				}
 					break
-				default:
 			}
 		}
 	}
@@ -414,7 +206,7 @@ function evaluatePathAndSetValidity() {
 	return nodeList
 }
 
-function addVisualHighlights(elements) {
+function addVisualHighlights(elements: Set<HTMLElement>) {
 	for (const element of elements) {
 		if (gHighlights.has(element)) continue
 
@@ -441,7 +233,7 @@ function addVisualHighlights(elements) {
 			tint.style.backgroundColor = gCached.color
 			tint.style.opacity = gCached.opacity
 			tint.style.pointerEvents = 'none'
-			tint.style.zIndex = 9942
+			tint.style.zIndex = '9942'
 			tint.setAttribute(HIGHLIGHT_MARKER, '')
 			document.body.appendChild(tint)
 		}
@@ -450,8 +242,8 @@ function addVisualHighlights(elements) {
 	}
 }
 
-function removeVisualHighlightsExceptFrom(matches = new Set()) {
-	for (const [element, info] of gHighlights) {
+function removeVisualHighlightsExceptFrom(matches = new Set<HTMLElement>()) {
+	for (const [ element, info ] of gHighlights) {
 		if (matches.has(element)) continue
 
 		// NOTE: Not checking if the element is contained in the <body>,
@@ -473,12 +265,13 @@ function removeVisualHighlightsExceptFrom(matches = new Set()) {
 function addAllLandmarks() {
 	if (!gCached.landmarks) return
 
-	for (const [element, info] of gHighlights) {
+	for (const [ element, info ] of gHighlights) {
 		if (gCached.landmarksAlwaysWrap
 			|| (hasRole(element) && !checkIfLandmark(element))) {
 			const wrapper = document.createElement('div')
 			addLandmarkProperties(wrapper, true)
-			element.parentElement.insertBefore(wrapper, element)
+			const parent = element.parentElement as HTMLElement  // checked
+			parent.insertBefore(wrapper, element)
 			wrapper.appendChild(element)
 			info.landmark = wrapper
 		} else {
@@ -501,26 +294,27 @@ function removeAllLandmarks() {
 		const landmark = info.landmark
 		if (landmark) {
 			const type = landmark.getAttribute(LANDMARK_MARKER)
-			switch (type) {
-				case markerTypes.wrapper:
-					landmark.replaceWith(...landmark.childNodes)
-					break
-				case markerTypes.direct:
-					removeLandmarkProperties(landmark)
-					break
-				case markerTypes.existing:
-					removeLandmarkPropertiesFromExistingLandmark(landmark)
-					break
-				default:
-					console.error(landmark)
-					throw Error(`Landmark with invalid marker type: ${type}`)
+			if (isMarker(type)) {
+				switch (type) {
+					case 'wrapper':
+						landmark.replaceWith(...landmark.childNodes)
+						break
+					case 'direct':
+						removeLandmarkProperties(landmark)
+						break
+					case 'existing':
+						removeLandmarkPropertiesFromExistingLandmark(landmark)
+				}
+			} else {
+				console.error(landmark)
+				throw Error(`Landmark with invalid marker type: ${type}`)
 			}
 			info.landmark = null
 		}
 	}
 }
 
-function hasRole(element) {
+function hasRole(element: HTMLElement) {
 	const names = [ 'div', 'span', 'p' ]
 	if (!element.tagName.includes('-') &&
 		!names.includes(element.tagName.toLowerCase())) return true
@@ -528,20 +322,21 @@ function hasRole(element) {
 	return false
 }
 
-function addLandmarkProperties(element, isWrapper) {
+function addLandmarkProperties(element: HTMLElement, isWrapper: boolean) {
+	gHighlightLandmarkCounter++
 	element.setAttribute('role', 'region')
 	element.setAttribute('aria-roledescription', 'Highlight')
-	element.setAttribute('aria-label', ++gHighlightLandmarkCounter)
-	setMarker(element, isWrapper ? markerTypes.wrapper : markerTypes.direct)
+	element.setAttribute('aria-label', String(gHighlightLandmarkCounter))
+	setMarker(element, isWrapper ? 'wrapper' : 'direct')
 }
 
-function addLandmarkPropertiesToExistingLandmark(element) {
+function addLandmarkPropertiesToExistingLandmark(element: HTMLElement) {
 	gHighlightLandmarkCounter += 1
 	const prelude = `(Highlight ${gHighlightLandmarkCounter})`
 	const label = getARIAProvidedLabel(element)  // FIXME: double-call
 	if (element.hasAttribute('aria-label')) {
 		element.setAttribute(ORIG_ARIA_LABEL,
-			element.getAttribute('aria-label'))
+			element.getAttribute('aria-label') as string)
 	}
 	if (label) {
 		element.setAttribute('aria-label', prelude + ' ' + label)
@@ -551,25 +346,21 @@ function addLandmarkPropertiesToExistingLandmark(element) {
 	setMarker(element, 'existing')
 }
 
-function setMarker(element, type) {
-	// eslint-disable-next-line no-prototype-builtins
-	if (!markerTypes.hasOwnProperty(type)) {
-		throw Error(`Cannot set invalid marker type: ${type}`)
-	}
-	element.setAttribute(LANDMARK_MARKER, markerTypes[type])
+function setMarker(element: HTMLElement, type: Marker) {
+	element.setAttribute(LANDMARK_MARKER, type)
 }
 
-function removeLandmarkProperties(element) {
+function removeLandmarkProperties(element: HTMLElement) {
 	element.removeAttribute('role')
 	element.removeAttribute('aria-roledescription')
 	element.removeAttribute('aria-label')
 	element.removeAttribute(LANDMARK_MARKER)
 }
 
-function removeLandmarkPropertiesFromExistingLandmark(element) {
+function removeLandmarkPropertiesFromExistingLandmark(element: HTMLElement) {
 	if (element.hasAttribute(ORIG_ARIA_LABEL)) {
 		element.setAttribute('aria-label',
-			element.getAttribute(ORIG_ARIA_LABEL))
+			element.getAttribute(ORIG_ARIA_LABEL) as string)
 		element.removeAttribute(ORIG_ARIA_LABEL)
 	} else {
 		element.removeAttribute('aria-label')
@@ -580,15 +371,15 @@ function removeLandmarkPropertiesFromExistingLandmark(element) {
 function sendInfo() {
 	send('matches', gMatchCounter)
 	if (document.hidden || !gPopupOpen) return
+	send('locator-validity', gValidLocator)  // assume true on start-up
 	send('mutations', gMutationCounter)
 	send('runs', gRunCounter)
-	send('state', gState)
-	send('locator-validity', gValidLocator)  // assume true on start-up
+	send('state', statePrettyNames[gState])
 }
 
 // Event handlers
 
-function storageChangedHandlerStandby(changes) {
+function storageChangedHandlerStandby(changes: StorageChanges) {
 	if ('on' in changes) {
 		gCached.on = changes.on.newValue
 		if (!document.hidden) {
@@ -597,29 +388,36 @@ function storageChangedHandlerStandby(changes) {
 	}
 }
 
-function storageChangedHandler(changes) {
-	for (const setting in changes) {
-		switch (setting) {
+function set(setting: keyof Settings, change: chrome.storage.StorageChange) {
+	if (typeof change.newValue === typeof gCached[setting]) {
+		// @ts-ignore
+		gCached[setting] = change.newValue
+	}
+}
+
+function storageChangedHandler(changes: StorageChanges) {
+	for (const [ changeName, change ] of Object.entries(changes)) {
+		switch (changeName) {
 			case 'on':
-				gCached[setting] = changes[setting].newValue
+				set(changeName, change)
 				if (changes.on.newValue === false) {
 					setUpOrTearDownHandlers(false, true)
 				}
 				break
 			case 'announce':
-				gCached[setting] = changes[setting].newValue
+				set(changeName, change)
 				break
 			case 'locator':
-				gCached[setting] = changes[setting].newValue
+				set(changeName, change)
 				locateAndhighlight()
 				break
 			case 'drawOutline':
 			case 'drawBoxShadow':
 			case 'outline':
 			case 'boxShadow':
-				gCached[setting] = changes[setting].newValue
+				set(changeName, change)
 				stopObservingAndUnScheduleRun()
-				for (const [element, info] of gHighlights) {
+				for (const [ element, info ] of gHighlights) {
 					if (!gCached.drawOutline || !gCached.outline) {
 						element.style.outline = info.outline
 					} else {
@@ -631,14 +429,14 @@ function storageChangedHandler(changes) {
 						element.style.boxShadow = gCached.boxShadow
 					}
 				}
-				if (gState !== states.manual && gCached.locator) {
+				if (gState !== 'manual' && gCached.locator) {
 					observeDocument()
 				}
 				break
 			case 'drawTint':
 			case 'color':
 			case 'opacity':
-				gCached[setting] = changes[setting].newValue
+				set(changeName, change)
 				stopObservingAndUnScheduleRun()
 				// NOTE: Have to remove all landmarks because FIXME
 				if (gCached.landmarks) removeAllLandmarks()
@@ -647,11 +445,11 @@ function storageChangedHandler(changes) {
 				break
 			case 'monitor':
 				if (changes.monitor.newValue === true) {
-					state(states.observing)
+					state('observing')
 					locateAndhighlight()  // will observeDocument()
 				} else {
 					stopObservingAndUnScheduleRun()
-					state(states.manual)
+					state('manual')
 				}
 				break
 			case 'landmarks':
@@ -660,23 +458,23 @@ function storageChangedHandler(changes) {
 					stopObservingAndUnScheduleRun()
 					removeAllLandmarks()
 				}
-				gCached[setting] = changes[setting].newValue
+				set(changeName, change)
 				if (gCached.landmarks) locateAndhighlight()
 				break
 			default:
-				throw Error(`Unknown setting: ${setting}`)
+				throw Error(`Unknown setting: ${changeName}`)
 		}
 	}
 }
 
-function messageHandler(message) {
+function messageHandler(message: Message) {
 	switch (message.name) {
 		case 'popup-open':
-			gPopupOpen = message.data
+			if (message.data) gPopupOpen = message.data
 			if (gPopupOpen) sendInfo()
 			break
 		case 'run':
-			if (gState === states.manual) locateAndhighlight()
+			if (gState === 'manual') locateAndhighlight()
 			break
 	}
 }
@@ -687,7 +485,7 @@ function visibilityHandler() {
 	// NOTE: We have not been listening to messages (including the one about
 	//       the popup's visibility) whilst invisible, so we ask the background
 	//       script to update us.
-	chrome.runtime.sendMessage({ name: 'popup-open' }, response => {
+	sendAndProcess('popup-open', response => {
 		if (chrome.runtime.lastError) {
 			throw Error(chrome.runtime.lastError.message)
 		}
@@ -696,11 +494,11 @@ function visibilityHandler() {
 	})
 }
 
-function setUpOrTearDownHandlers(enable, userTriggered) {
+function setUpOrTearDownHandlers(enable: boolean, userTriggered: boolean) {
 	if (enable) {
-		chrome.storage.sync.get(settings, items => {
+		chrome.storage.sync.get(defaults, items => {
 			Object.assign(gCached, items)
-			state(items.monitor ? states.observing : states.manual)
+			state(items.monitor ? 'observing' : 'manual')
 			chrome.storage.onChanged.removeListener(storageChangedHandlerStandby)
 			chrome.storage.onChanged.addListener(storageChangedHandler)
 			chrome.runtime.onMessage.addListener(messageHandler)
@@ -724,14 +522,18 @@ function setUpOrTearDownHandlers(enable, userTriggered) {
 
 // Bootstrapping and helper functions
 
-function state(newState) {
+function state(newState: State) {
 	gState = newState
-	if (!document.hidden && gPopupOpen) send('state', newState)
+	if (!document.hidden && gPopupOpen) send('state', statePrettyNames[newState])
 }
 
 // NOTE: Callers need to check document is visible, and whether popup is open
-function send(name, data) {
-	chrome.runtime.sendMessage({ name, data }, function() {
+function send<Name extends NonDataMessageName>(name: Name): void
+function send<Name extends NonDataMessageName>(name: Name): void
+function send<Name extends DataMessageName>(name: Name, data: DataType<Name>): void
+function send<Name extends NonDataMessageName | DataMessageName>(name: Name, data?: DataType<Name>) {
+	const message = data !== undefined ? { name, data } : { name }
+	chrome.runtime.sendMessage(message, function() {
 		if (chrome.runtime.lastError) {
 			// NOTE: Was printing the message to console, but got loads of
 			//       notices about the port closing before a response could be
@@ -739,6 +541,13 @@ function send(name, data) {
 			//       the port is betwixt the poup and background script.
 		}
 	})
+}
+
+// NOTE: Callers need to check document is visible, and whether popup is open
+function sendAndProcess<Name extends NonDataMessageName>(
+	name: Name, callback: (response: DefiniteDataMessage<Name>) => void
+): void {
+	chrome.runtime.sendMessage({ name }, callback)
 }
 
 // NOTE: Only needed on Chromium (TODO: conditionally build)
@@ -754,13 +563,13 @@ chrome.runtime.connect({ name: 'unloaded' }).onDisconnect.addListener(() => {
 // This is all wrapped in checking the 'on' setting, because doing so here
 // negates the need to unnecessarily get the setting each time page visibility
 // changes.
-chrome.storage.sync.get({ on: settings.on, announce: settings.announce }, items => {
+chrome.storage.sync.get({ on: defaults.on, announce: defaults.announce }, items => {
 	Object.assign(gCached, items)
 	document.addEventListener('visibilitychange', visibilityHandler)
 
 	// Firefox auto-injects content scripts
 	if (!document.hidden) {
-		state(states.startup)
+		state('startup')
 		sendInfo()  // set badge text; update pop-up info if it's open
 		setTimeout(() => {
 			if (!document.hidden) {

@@ -77,7 +77,7 @@ It's possible that, depending on the page's styling, the use of landmark regions
 
 Only elements below the `<body>` will be counted as matches, and highlighted (for either type of query).
 
-An XPath can return more than just an element, or elements, but only XPaths that return elements are supported.
+An XPath can return more than just an element, or elements, but only XPaths that return elements are supported. If any non-element nodes _are_ matched, they are discounted.
 
 If you unload (or reload, or update) the extension whilst matches are highlighted, you'll need to refresh those pages to restore their appearance, and correct extension behaviour.
 
