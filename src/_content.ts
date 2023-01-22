@@ -314,10 +314,11 @@ function removeAllLandmarks() {
 	}
 }
 
+// NOTE: https://www.w3.org/TR/html-aria/#docconformance
 function hasRole(element: HTMLElement) {
-	const names = [ 'div', 'span', 'p' ]
+	const noImplicitRole = [ 'br', 'div', 'span', 'p' ]
 	if (!element.tagName.includes('-') &&
-		!names.includes(element.tagName.toLowerCase())) return true
+		!noImplicitRole.includes(element.tagName.toLowerCase())) return true
 	if (element.hasAttribute('role')) return true
 	return false
 }
