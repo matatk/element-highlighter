@@ -8,7 +8,15 @@ This simple browser extension highlights all elements on the page that match a s
 Installing the extension
 ------------------------
 
-First you need to either check out, or [download the code](https://github.com/matatk/element-highlighter/archive/refs/heads/main.zip) and extract the ZIP file. You can then sideload it manually in various browsers—point your browser at the `extension/` directory.
+You must have Node.js installed to build the extension. [Download Node.js,](https://nodejs.org/en/download) and if necessary, check out this excellent [guide to installing it.](https://kinsta.com/blog/how-to-install-node-js/)
+
+Second you need to either check out, or [download the code](https://github.com/matatk/element-highlighter/archive/refs/heads/main.zip) and extract the ZIP file.
+
+Third you build the extension:
+* npm install
+* npm run build
+
+You can then sideload it manually in various browsers—point your browser at the `extension/` directory.
 
 On Chromium-based browsers you will need to refresh any pages that are open when you first install the extension (Chromium doesn't automatically load the extension's script into existing tabs).
 
